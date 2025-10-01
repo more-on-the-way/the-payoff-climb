@@ -693,6 +693,489 @@ if (view === 'results') {
     );
   }
 
-  return null;
 }
 
+  if (view === 'scenarios') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <button onClick={() => setView('results')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-6">
+              <ChevronLeft className="w-5 h-5" />
+              Back to Results
+            </button>
+
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Saved Scenarios</h2>
+              {compareScenarios.length > 0 && (
+                <button
+                  onClick={() => setView('compare')}
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+                >
+                  Compare Selected ({compareScenarios.length})
+                </button>
+              )}
+            </div>
+
+            {scenarios.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Save className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>No saved scenarios yet. Save one from the results page!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {scenarios.map(scenario => (
+                  <div key={scenario.id} className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={compareScenarios.includes(scenario.id)}
+                          onChange={() => toggleCompare(scenario.id)}
+                          className="w-5 h-5 mt-1"
+                        />
+                        <div>
+                          <h3 className="font-bold text-lg text-gray-900">{scenario.name}</h3>
+                          <p className="text-sm text-gray-600">Saved on {scenario.date}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => loadScenario(scenario)}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
+                        >
+                          Load
+                        </button>
+                        <button
+                          onClick={() => deleteScenario(scenario.id)}
+                          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 mt-4">
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="text-xs text-gray-600">Total Balance</div>
+                        <div className="font-semibold">${scenario.resultsData.totalBalance.toFixed(2)}</div>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="text-xs text-gray-600">Extra Payment</div>
+                        <div className="font-semibold">${scenario.resultsData.extra.toFixed(2)}</div>
+                      </div>
+                      <div className="bg-white p-3 rounded-lg">
+                        <div className="text-xs text-gray-600">Payoff Months</div>
+                        <div className="font-semibold">{scenario.resultsData.avalancheMonths}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'compare') {
+    const selectedScenarios = scenarios.filter(s => compareScenarios.includes(s.id));
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <button onClick={() => setView('scenarios')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-6">
+              <ChevronLeft className="w-5 h-5" />
+              Back to Scenarios
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Scenario Comparison</h2>
+
+            {selectedScenarios.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p>No scenarios selected. Go back and select scenarios to compare.</p>
+              </div>
+            ) : (
+              <div>
+                <div className="grid gap-6" style={{ gridTemplateColumns: `repeat(${selectedScenarios.length}, minmax(0, 1fr))` }}>
+                  {selectedScenarios.map(scenario => (
+                    <div key={scenario.id} className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-xl border-2 border-indigo-200">
+                      <h3 className="font-bold text-xl text-gray-900 mb-4">{scenario.name}</h3>
+                      <div className="space-y-4">
+                        <div className="bg-white p-4 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Total Debt</div>
+                          <div className="text-2xl font-bold text-gray-900">${scenario.resultsData.totalBalance.toFixed(2)}</div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Number of Loans</div>
+                          <div className="text-2xl font-bold text-teal-600">{scenario.savedLoans.length}</div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Average Interest Rate</div>
+                          <div className="text-2xl font-bold text-orange-600">
+                            {(scenario.savedLoans.reduce((sum, l) => sum + parseFloat(l.loanRate), 0) / scenario.savedLoans.length).toFixed(2)}%
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Monthly Payment</div>
+                          <div className="text-2xl font-bold text-indigo-600">
+                            ${(scenario.resultsData.totalMinPayment + scenario.resultsData.extra).toFixed(2)}
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg">
+                          <div className="text-sm text-gray-600 mb-1">Avalanche Payoff</div>
+                          <div className="text-xl font-bold text-green-600">{scenario.resultsData.avalancheMonths} months</div>
+                          <div className="text-sm text-gray-700 mt-1">
+                            Interest: ${scenario.resultsData.avalancheTotalInterest.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'progress') {
+    if (!activeScenario) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <button onClick={() => setView('results')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-6">
+                <ChevronLeft className="w-5 h-5" />
+                Back to Results
+              </button>
+              <div className="text-center py-12 text-gray-500">
+                <Target className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>No active scenario. Load one from the Scenario Manager!</p>
+                <button
+                  onClick={() => setView('scenarios')}
+                  className="mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition"
+                >
+                  Go to Scenarios
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const totalInitial = activeScenario.results.totalBalance;
+    const totalCurrent = activeScenario.loans.reduce((sum, l) => sum + l.currentBalance, 0);
+    const percentPaid = ((totalInitial - totalCurrent) / totalInitial) * 100;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex justify-between items-center mb-6">
+              <button onClick={() => setView('results')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800">
+                <ChevronLeft className="w-5 h-5" />
+                Back to Results
+              </button>
+              <button 
+                onClick={() => {
+                  setActiveScenario(null);
+                  setView('results');
+                }}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm"
+              >
+                Clear Progress Tracker
+              </button>
+            </div>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Progress Tracker</h2>
+            <p className="text-gray-600 mb-6">Tracking: {activeScenario.name}</p>
+
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-xl mb-8">
+              <h3 className="text-lg font-semibold mb-4">Overall Progress</h3>
+              <div className="w-full bg-white bg-opacity-30 rounded-full h-8 mb-3">
+                <div
+                  className="bg-white h-8 rounded-full flex items-center justify-center text-green-900 font-bold transition-all duration-500"
+                  style={{ width: `${Math.min(percentPaid, 100)}%` }}
+                >
+                  {percentPaid.toFixed(1)}%
+                </div>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Paid: ${(totalInitial - totalCurrent).toFixed(2)}</span>
+                <span>Remaining: ${totalCurrent.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {activeScenario.loans.map((loan, idx) => (
+                <div key={loan.id} className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                  <h3 className="font-bold text-lg mb-3">{loan.name || `Loan ${idx + 1}`}</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <div className="text-sm text-gray-600">Original Balance</div>
+                      <div className="font-semibold">${parseFloat(loan.balance).toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Current Balance</div>
+                      <div className="font-semibold text-green-600">${loan.currentBalance.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Interest Rate</div>
+                      <div className="font-semibold">{loan.rate}%</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Monthly Interest</div>
+                      <div className="font-semibold text-orange-600">${(loan.currentBalance * parseFloat(loan.rate) / 100 / 12).toFixed(2)}</div>
+                    </div>
+                  </div>
+                  {loan.lastPaymentDate && (
+                    <div className="bg-blue-50 p-3 rounded-lg mb-4 text-sm">
+                      <div className="font-semibold text-blue-900 mb-1">Last Payment: {loan.lastPaymentDate}</div>
+                      <div className="text-gray-700">Interest Accrued: ${loan.lastInterestAccrued.toFixed(2)}</div>
+                      <div className="text-gray-700">Principal Paid: ${loan.lastPrincipalPaid.toFixed(2)}</div>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="Payment amount"
+                      id={`payment-${loan.id}`}
+                      className="flex-1 px-4 py-2 border rounded-lg"
+                    />
+                    <button
+                      onClick={() => {
+                        const input = document.getElementById(`payment-${loan.id}`);
+                        logPayment(loan.id, input.value);
+                        input.value = '';
+                      }}
+                      className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+                    >
+                      Log Payment
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'breakdown') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <button onClick={() => setView('results')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-6">
+              <ChevronLeft className="w-5 h-5" />
+              Back to Results
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Monthly Payment Breakdown (Avalanche)</h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-indigo-600 text-white">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Month</th>
+                    <th className="px-4 py-3 text-right">Principal Paid</th>
+                    <th className="px-4 py-3 text-right">Interest Paid</th>
+                    <th className="px-4 py-3 text-right">Remaining Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyBreakdown.slice(0, 120).map((row, idx) => (
+                    <tr key={idx} className={idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                      <td className="px-4 py-3 font-semibold">{row.month}</td>
+                      <td className="px-4 py-3 text-right">${row.principal.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right">${row.interest.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right font-semibold">${row.remaining.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {monthlyBreakdown.length > 120 && (
+              <p className="text-center text-gray-600 mt-4">
+                Showing first 120 months of {monthlyBreakdown.length} total months
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'refinance') {
+    const refinanceResults = calculateRefinance();
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <button onClick={() => setView('results')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-6">
+              <ChevronLeft className="w-5 h-5" />
+              Back to Results
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Refinance Simulator</h2>
+
+            <div className="bg-purple-50 p-6 rounded-xl border border-purple-200 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-4">New Loan Terms</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">New Interest Rate (%)</label>
+                  <input
+                    type="number"
+                    value={refinanceRate}
+                    onChange={(e) => setRefinanceRate(e.target.value)}
+                    placeholder="e.g., 4.5"
+                    className="w-full px-4 py-2 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">New Term (Years)</label>
+                  <input
+                    type="number"
+                    value={refinanceTerm}
+                    onChange={(e) => setRefinanceTerm(e.target.value)}
+                    placeholder="e.g., 10"
+                    className="w-full px-4 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {refinanceResults && (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">Refinanced Plan</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm opacity-90">New Monthly Payment</div>
+                      <div className="text-3xl font-bold">${refinanceResults.payment.toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm opacity-90">Total Interest</div>
+                      <div className="text-3xl font-bold">${refinanceResults.totalInterest.toFixed(2)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`p-6 rounded-xl border-2 ${
+                  refinanceResults.savings > 0 
+                    ? 'bg-green-50 border-green-300' 
+                    : 'bg-red-50 border-red-300'
+                }`}>
+                  <h3 className="font-bold text-lg mb-2">
+                    {refinanceResults.savings > 0 ? 'Potential Savings' : 'Increased Cost'}
+                  </h3>
+                  <p className="text-3xl font-bold mb-2">
+                    ${Math.abs(refinanceResults.savings).toFixed(2)}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    {refinanceResults.savings > 0 
+                      ? 'You would save this much compared to your current plan'
+                      : 'This refinance would cost you more than your current plan'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'idr') {
+    const idrResults = calculateIDR();
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <button onClick={() => setView('results')} className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-6">
+              <ChevronLeft className="w-5 h-5" />
+              Back to Results
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Income-Driven Repayment Estimator</h2>
+
+            <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-4">Your Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">Adjusted Gross Income (AGI)</label>
+                  <input
+                    type="number"
+                    value={idrAGI}
+                    onChange={(e) => setIdrAGI(e.target.value)}
+                    placeholder="e.g., 50000"
+                    className="w-full px-4 py-2 border rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2">Family Size</label>
+                  <input
+                    type="number"
+                    value={idrFamilySize}
+                    onChange={(e) => setIdrFamilySize(e.target.value)}
+                    min="1"
+                    className="w-full px-4 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {idrResults && (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">IBR (Income-Based Repayment)</h3>
+                  <div className="text-4xl font-bold mb-2">${idrResults.ibr.toFixed(2)}/mo</div>
+                  <p className="text-sm opacity-90">15% of discretionary income</p>
+                </div>
+
+                <div className="bg-gradient-to-r from-green-500 to-teal-600 text-white p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">PAYE (Pay As You Earn)</h3>
+                  <div className="text-4xl font-bold mb-2">${idrResults.paye.toFixed(2)}/mo</div>
+                  <p className="text-sm opacity-90">10% of discretionary income</p>
+                </div>
+
+                <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white p-6 rounded-xl">
+                  <h3 className="text-lg font-semibold mb-4">SAVE Plan</h3>
+                  <div className="text-4xl font-bold mb-2">${idrResults.newPlan.toFixed(2)}/mo</div>
+                  <p className="text-sm opacity-90">5% of discretionary income</p>
+                </div>
+
+                {results && (
+                  <div className="bg-gray-100 p-6 rounded-xl">
+                    <h4 className="font-semibold mb-3">Comparison to Current Plan</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Your Current Monthly Payment:</span>
+                        <span className="font-semibold">${(results.totalMinPayment + results.extra).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Lowest IDR Option (SAVE):</span>
+                        <span className="font-semibold">${idrResults.newPlan.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
