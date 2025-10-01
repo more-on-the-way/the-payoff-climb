@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Calculator, TrendingUp, Target, Calendar, DollarSign, Award, Save, Download, RefreshCw, BarChart3, FileText, ChevronLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calculator, TrendingUp, Target, Award, Save, Download, RefreshCw, BarChart3, FileText, ChevronLeft } from 'lucide-react';
 
 export default function StudentLoanPayoff() {
   const [view, setView] = useState('input');
@@ -366,7 +366,7 @@ export default function StudentLoanPayoff() {
                 {loans.map((loan, idx) => (
                   <div key={loan.id} className="bg-gray-50 p-6 rounded-xl mb-4 border border-gray-200">
                     <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-semibold text-gray-700">Loan {idx + 1}</h3>
+                      <h3 className="font-semibold text-gray-700">Loan #{idx + 1}</h3>
                       {loans.length > 1 && (
                         <button onClick={() => removeLoan(loan.id)} className="text-red-600 hover:text-red-800 text-sm">
                           Remove
@@ -377,14 +377,14 @@ export default function StudentLoanPayoff() {
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <input
                         type="text"
-                        placeholder="Loan Name (optional)"
+                        placeholder="Loan Name (e.g., 'FedLoan')"
                         value={loan.name}
                         onChange={(e) => updateLoan(loan.id, 'name', e.target.value)}
                         className="col-span-2 px-4 py-2 border rounded-lg"
                       />
                       <input
                         type="number"
-                        placeholder="Balance ($)"
+                        placeholder="Current Balance ($)"
                         value={loan.balance}
                         onChange={(e) => updateLoan(loan.id, 'balance', e.target.value)}
                         className="px-4 py-2 border rounded-lg"
@@ -398,7 +398,7 @@ export default function StudentLoanPayoff() {
                       />
                       <input
                         type="number"
-                        placeholder="Min Payment ($)"
+                        placeholder="Minimum Monthly Payment ($)"
                         value={loan.minPayment}
                         onChange={(e) => updateLoan(loan.id, 'minPayment', e.target.value)}
                         className="px-4 py-2 border rounded-lg col-span-2"
@@ -413,7 +413,7 @@ export default function StudentLoanPayoff() {
                           onChange={(e) => updateLoan(loan.id, 'gracePeriod', e.target.checked)}
                           className="w-4 h-4"
                         />
-                        <span className="text-sm text-gray-700">Is this loan in a grace period?</span>
+                        <span className="text-sm text-gray-700">Is this loan currently in a grace period?</span>
                       </label>
 
                       {loan.gracePeriod && (
@@ -452,7 +452,7 @@ export default function StudentLoanPayoff() {
                     />
                     <input
                       type="number"
-                      placeholder="Payments required"
+                      placeholder="Payments required (default: 120)"
                       value={pslfPaymentsRequired}
                       onChange={(e) => setPslfPaymentsRequired(e.target.value)}
                       className="px-4 py-2 border rounded-lg"
@@ -462,7 +462,7 @@ export default function StudentLoanPayoff() {
               </div>
 
               <div className="bg-green-50 p-6 rounded-xl border border-green-200">
-                <h3 className="font-semibold text-gray-800 mb-4">Payoff Goal</h3>
+                <h3 className="font-semibold text-gray-800 mb-4">How do you want to pay off your loans?</h3>
                 
                 <div className="flex gap-4 mb-4">
                   <button
@@ -694,8 +694,6 @@ export default function StudentLoanPayoff() {
   }
 
   if (view === 'scenarios') {
-    const selectedScenarios = scenarios.filter(s => compareScenarios.includes(s.id));
-
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-6xl mx-auto">
