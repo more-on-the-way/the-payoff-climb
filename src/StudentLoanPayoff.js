@@ -131,8 +131,8 @@ const ScenarioManager = ({ scenarios, onBack, onDelete, onLoad }) => (
                         <div className="text-sm"><strong>Payoff:</strong> {formatDate(s.results.avalanche.months)}</div>
                         <div className="text-sm"><strong>Interest:</strong> {formatCurrency(s.results.avalanche.totalInterest)}</div>
                         <div className="flex gap-2 justify-end">
-                            <button onClick={() => onLoad(s)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full"><ChevronsRight size={18} /></button>
-                            <button onClick={() => onDelete(s.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-full"><Trash2 size={18} /></button>
+                            <button onClick={() => onLoad(s)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full" title="Load Scenario for Tracking"><ChevronsRight size={18} /></button>
+                            <button onClick={() => onDelete(s.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-full" title="Delete Scenario"><Trash2 size={18} /></button>
                         </div>
                     </div>
                 ))}
@@ -213,18 +213,21 @@ export default function StudentLoanPayoff() {
             const interest = loan.balance * (loan.rate / 12);
             monthInterest += interest; totalInterest += interest; loan.balance += interest;
         });
+        let totalMinPaid = 0;
         remaining.forEach(loan => {
             if (loan.balance <= 0) return;
             const payment = Math.min(loan.minPayment, loan.balance);
-            loan.balance -= payment; monthPrincipal += payment;
+            loan.balance -= payment; totalMinPaid += payment;
         });
         let availableExtra = extra;
         for (const loan of remaining) {
             if (loan.balance > 0 && availableExtra > 0) {
                 const extraApplied = Math.min(availableExtra, loan.balance);
-                loan.balance -= extraApplied; monthPrincipal += extraApplied; availableExtra -= extraApplied;
+                loan.balance -= extraApplied;
+                availableExtra -= extraApplied;
             }
         }
+        monthPrincipal = totalMinPaid + (extra - availableExtra);
         breakdown.push({ month, principal: monthPrincipal, interest: monthInterest, balance: remaining.reduce((sum, l) => sum + Math.max(0, l.balance), 0) });
     }
     return { months: month, totalInterest, years: Math.floor(month / 12), breakdown };
@@ -243,11 +246,20 @@ export default function StudentLoanPayoff() {
     });
 
     let extra = parseFloat(extraPayment) || 0;
-    // ... Target year calculation logic ...
+    if (paymentMode === 'target' && targetYears > 0) {
+        let low = 0, high = 50000;
+        for(let i = 0; i < 50; i++) { // Binary search for the right payment
+            let mid = (low + high) / 2;
+            const res = calculateStrategy([...loansWithAccrued], mid);
+            if(res.months > targetYears * 12) low = mid;
+            else high = mid;
+        }
+        extra = high;
+    }
     
     const avalanche = calculateStrategy([...loansWithAccrued].sort((a, b) => parseFloat(b.rate) - parseFloat(a.rate)), extra);
     const snowball = calculateStrategy([...loansWithAccrued].sort((a, b) => parseFloat(a.balance) - parseFloat(b.balance)), extra);
-    setResults({ avalanche, snowball, extraPaymentAmount: extra, inputLoans: loansWithAccrued });
+    setResults({ avalanche, snowball, extraPaymentAmount: extra, inputLoans: loansWithAccrued, paymentMode, targetYears });
     setView('results');
   };
   
@@ -261,13 +273,13 @@ export default function StudentLoanPayoff() {
         };
         setScenarios([...scenarios, newScenario]);
         setActiveScenario(newScenario);
-        alert(`Scenario "${name}" saved!`);
+        alert(`Scenario "${name}" saved! You can now track its progress.`);
     }
   };
 
   const exportToCSV = () => {
     if (!results) return;
-    let csvContent = "data:text/csv;charset=utf-8,Month,Principal,Interest,Remaining Balance\n";
+    let csvContent = "data:text/csv;charset=utf-8,Month,Principal Paid,Interest Paid,Remaining Balance\n";
     results.avalanche.breakdown.forEach(row => {
         csvContent += `${row.month},${row.principal},${row.interest},${row.balance}\n`;
     });
@@ -336,12 +348,16 @@ export default function StudentLoanPayoff() {
     </div>
   );
 
-  const renderResultsView = () => (
+  const renderResultsView = () => {
+    const totalMinPayment = results.inputLoans.reduce((sum, l) => sum + parseFloat(l.minPayment), 0);
+    const totalPayment = totalMinPayment + results.extraPaymentAmount;
+
+    return (
     <div className="space-y-6">
         <div className="bg-white rounded-2xl shadow-xl p-4">
             <div className="flex flex-wrap gap-2 items-center">
                 <button onClick={() => setView('scenarios')} className="flex items-center px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200"><SlidersHorizontal size={16} className="mr-2"/>Manage Scenarios</button>
-                <button onClick={() => setView('progress')} className="flex items-center px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200" disabled={!activeScenario}><Trophy size={16} className="mr-2"/>Track Progress</button>
+                <button onClick={() => setView('progress')} className="flex items-center px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200" disabled={!activeScenario} title={!activeScenario ? "Save a scenario first to track progress" : "Track Progress"}><Trophy size={16} className="mr-2"/>Track Progress</button>
                 <button onClick={() => setView('breakdown')} className="flex items-center px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200"><BarChart3 size={16} className="mr-2"/>Monthly Plan</button>
                 <button onClick={() => setView('refinance')} className="flex items-center px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200"><Calculator size={16} className="mr-2"/>Refinance Sim</button>
                 <button onClick={() => setView('idr')} className="flex items-center px-3 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200"><DollarSign size={16} className="mr-2"/>IDR Estimator</button>
@@ -350,13 +366,35 @@ export default function StudentLoanPayoff() {
                 <button onClick={exportToCSV} className="flex items-center px-3 py-2 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700"><Download size={16} className="mr-2"/>Export</button>
             </div>
         </div>
+        
+        <div className="bg-white rounded-2xl shadow-xl p-6 text-center">
+            <h3 className="text-lg font-semibold text-gray-700">Your Projected Monthly Payment</h3>
+            <p className="text-4xl font-bold text-gray-900 mt-2">{formatCurrency(totalPayment)}</p>
+            <p className="text-sm text-gray-500 mt-1">{formatCurrency(totalMinPayment)} (minimum payments) + {formatCurrency(results.extraPaymentAmount)} (extra)</p>
+            {results.paymentMode === 'target' && <p className="mt-2 text-sm text-blue-600 font-medium">This extra payment is calculated to meet your {results.targetYears}-year payoff goal.</p>}
+        </div>
+
         {results.inputLoans.some(l => l.accruedInterest > 0) && (
             <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-r-lg">
                 <p className="font-bold">Grace Period Interest</p>
-                <p>A total of {formatCurrency(results.inputLoans.reduce((sum, l) => sum + l.accruedInterest, 0))} in interest was accrued during grace periods and added to your starting balance.</p>
+                <p>A total of {formatCurrency(results.inputLoans.reduce((sum, l) => sum + l.accruedInterest, 0))} in interest was accrued during grace periods and added to your starting loan balances.</p>
             </div>
         )}
-        <ForgivenessTracker plan={forgivenessPlan} />
+        {forgivenessPlan.active && (
+            <div className="bg-white rounded-2xl p-6 border-2 border-green-200">
+                <div className="flex items-center mb-3">
+                    <ShieldCheck className="w-6 h-6 mr-3 text-green-600" />
+                    <h3 className="text-xl font-bold">PSLF Forgiveness Progress</h3>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                    <div className="bg-green-500 h-4 rounded-full" style={{ width: `${(parseInt(forgivenessPlan.made) / parseInt(forgivenessPlan.required)) * 100}%` }}></div>
+                </div>
+                <div className="flex justify-between text-sm mt-2">
+                    <span>{forgivenessPlan.made} of {forgivenessPlan.required} Payments Made</span>
+                    <span className="font-bold">{((parseInt(forgivenessPlan.made) / parseInt(forgivenessPlan.required)) * 100).toFixed(1)}%</span>
+                </div>
+            </div>
+        )}
         <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl p-6 border-2 border-blue-200">
                 <h3 className="text-xl font-bold mb-1">Avalanche Method</h3><p className="text-sm text-gray-600 mb-4">Pays highest interest first.</p>
@@ -369,7 +407,8 @@ export default function StudentLoanPayoff() {
         </div>
         <button onClick={() => setView('input')} className="w-full bg-gray-200 py-3 rounded-xl font-semibold hover:bg-gray-300">Start a New Calculation</button>
     </div>
-  );
+    );
+  };
 
   return (
       <div className="min-h-screen bg-gray-50 p-4">
