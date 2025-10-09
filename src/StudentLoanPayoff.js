@@ -292,7 +292,7 @@ export default function StudentLoanPayoff() {
               <Button onClick={handleCalculate} className="w-full text-lg py-3">
                 <Calculator className="w-6 h-6" />
                 Calculate Payoff Plan
-              </button>
+              </Button>
             </div>
           </div>
         </div>
