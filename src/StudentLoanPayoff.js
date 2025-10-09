@@ -47,7 +47,7 @@ export default function StudentLoanPayoff() {
   // State for Financial Profile
   const [agi, setAgi] = useState('50000');
   const [familySize, setFamilySize] = useState('1');
-  const [stateOfResidence, setStateOfResidence] = useState('CA');
+  const [stateOfResidence, setStateOfResidence] = useState('MO');
   const [filingStatus, setFilingStatus] = useState('single');
 
   // State for Loans
@@ -74,40 +74,44 @@ export default function StudentLoanPayoff() {
   // --- Smart Logic for Results ---
   const eligiblePlans = useMemo(() => {
     const financialProfile = { agi: parseFloat(agi), familySize: parseInt(familySize), stateOfResidence, filingStatus };
-    const hasFederalLoans = loans.some(l => l.type === 'Federal' && parseFloat(l.balance) > 0);
+    const validLoans = loans.filter(l => l.type === 'Federal' && parseFloat(l.balance) > 0 && parseFloat(l.rate) > 0);
 
-    if (!financialProfile.agi || !hasFederalLoans) {
+    if (!financialProfile.agi || validLoans.length === 0) {
       return { plans: {}, contaminationWarning: false };
     }
 
-    const allPlans = calculatePlans(financialProfile, loans);
+    const allPlans = calculatePlans(financialProfile, validLoans);
     let filteredPlans = {};
     
-    const hasPre2026Loan = loans.some(l => l.type === 'Federal' && (l.originationDate === 'before_2014' || l.originationDate === 'after_2014'));
-    const contaminationTriggered = hasPre2026Loan && plansToTakeNewLoan === 'yes';
+    const isGrandfathered = validLoans.some(l => l.originationDate === 'before_2014' || l.originationDate === 'after_2014');
+    const isNewBorrower = validLoans.every(l => l.originationDate === 'after_2026');
+    const contaminationTriggered = isGrandfathered && plansToTakeNewLoan === 'yes';
 
-    if (contaminationTriggered) {
-      return {
-        plans: {
-          'RAP': allPlans['RAP'],
-          'Standardized Tiered Plan': allPlans['Standardized Tiered Plan'],
-        },
-        contaminationWarning: true,
-      };
+    // Scenario A or C: New or "Contaminated" Borrowers
+    if (isNewBorrower || contaminationTriggered) {
+        if(allPlans['RAP']) filteredPlans['RAP'] = allPlans['RAP'];
+        if(allPlans['Standardized Tiered Plan']) filteredPlans['Standardized Tiered Plan'] = allPlans['Standardized Tiered Plan'];
+        
+        return {
+            plans: filteredPlans,
+            contaminationWarning: contaminationTriggered,
+        };
     }
 
-    const hasOnlyAfter2014 = loans.every(l => l.type !== 'Federal' || l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
-    const hasPre2014 = loans.some(l => l.type === 'Federal' && l.originationDate === 'before_2014');
+    // Scenario B: Grandfathered Borrowers
+    const hasPre2014 = validLoans.some(l => l.originationDate === 'before_2014');
+    const hasOnlyPost2014 = validLoans.every(l => l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
 
     for (const planName in allPlans) {
         const plan = allPlans[planName];
-        // Sunset logic
+        
         if (plan.sunset && new Date() >= plan.sunset) {
           continue;
         }
 
         if (planName === 'Old IBR' && !hasPre2014) continue;
-        if ((planName === 'New IBR' || planName === 'PAYE') && !hasOnlyAfter2014) continue;
+        if (planName === 'New IBR' && !hasOnlyPost2014) continue;
+        if (planName === 'PAYE' && hasPre2014) continue; // PAYE is not for borrowers with pre-2014 loans
         
         filteredPlans[planName] = plan;
     }
@@ -216,7 +220,7 @@ export default function StudentLoanPayoff() {
                 <AlertTriangle size={24} />
                 <div>
                   <h3 className="font-bold">Important Warning</h3>
-                  <p>Because you have older loans and plan to take out new loans after July 1, 2026, your plan options are limited to avoid negative interactions between loan terms.</p>
+                  <p>Because you plan to take out new loans after July 1, 2026, your plan options for ALL your loans are now limited.</p>
                 </div>
               </div>
             )}
