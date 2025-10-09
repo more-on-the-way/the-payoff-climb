@@ -28,15 +28,18 @@ const Select = ({ label, id, children, ...props }) => (
 const ResultsCard = ({ title, plan, warning }) => {
     const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
     const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
-  
+    
+    const dateToUse = plan.isIdr ? (plan.forgivenessDate || plan.payoffDate) : plan.payoffDate;
+    const dateLabel = plan.isIdr ? (plan.forgivenessDate ? 'Forgiveness Date:' : 'Payoff Date:') : 'Payoff Date:';
+
     return (
-      <div className="bg-gray-50 rounded-lg p-4 border">
+      <div className="bg-gray-50 rounded-lg p-4 border flex flex-col">
         <h3 className="font-bold text-lg text-indigo-700">{title}</h3>
-        {warning && <p className="text-sm text-yellow-700 my-2">{warning}</p>}
-        <div className="mt-2 space-y-1 text-sm">
+        {warning && <p className="text-xs text-yellow-700 my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
+        <div className="mt-2 space-y-1 text-sm flex-grow">
           <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
           <p><span className="font-semibold">Total Paid:</span> {formatCurrency(plan.totalPaid)}</p>
-          <p><span className="font-semibold">{plan.isIdr ? 'Forgiveness Date:' : 'Payoff Date:'}</span> {formatDate(plan.isIdr ? plan.forgivenessDate : plan.payoffDate)}</p>
+          <p><span className="font-semibold">{dateLabel}</span> {formatDate(dateToUse)}</p>
         </div>
       </div>
     );
@@ -52,7 +55,7 @@ export default function StudentLoanPayoff() {
 
   // State for Loans
   const [loans, setLoans] = useState([]);
-  const [plansToTakeNewLoan, setPlansToTakeNewLoan] = useState(null); // null, 'yes', or 'no'
+  const [plansToTakeNewLoan, setPlansToTakeNewLoan] = useState(null);
 
   // --- Helper Functions ---
   const addLoan = () => {
@@ -74,7 +77,7 @@ export default function StudentLoanPayoff() {
   // --- Smart Logic for Results ---
   const eligiblePlans = useMemo(() => {
     const financialProfile = { agi: parseFloat(agi), familySize: parseInt(familySize), stateOfResidence, filingStatus };
-    const validLoans = loans.filter(l => l.type === 'Federal' && parseFloat(l.balance) > 0 && parseFloat(l.rate) > 0);
+    const validLoans = loans.filter(l => l.type === 'Federal' && parseFloat(l.balance) > 0 && parseFloat(l.rate) >= 0);
 
     if (!financialProfile.agi || validLoans.length === 0) {
       return { plans: {}, contaminationWarning: false };
@@ -87,7 +90,6 @@ export default function StudentLoanPayoff() {
     const isNewBorrower = validLoans.every(l => l.originationDate === 'after_2026');
     const contaminationTriggered = isGrandfathered && plansToTakeNewLoan === 'yes';
 
-    // Scenario A or C: New or "Contaminated" Borrowers
     if (isNewBorrower || contaminationTriggered) {
         if(allPlans['RAP']) filteredPlans['RAP'] = allPlans['RAP'];
         if(allPlans['Standardized Tiered Plan']) filteredPlans['Standardized Tiered Plan'] = allPlans['Standardized Tiered Plan'];
@@ -98,22 +100,27 @@ export default function StudentLoanPayoff() {
         };
     }
 
-    // Scenario B: Grandfathered Borrowers
-    const hasPre2014 = validLoans.some(l => l.originationDate === 'before_2014');
-    const hasOnlyPost2014 = validLoans.every(l => l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
+    if (isGrandfathered) {
+        const hasPre2014 = validLoans.some(l => l.originationDate === 'before_2014');
+        const hasOnlyPost2014 = validLoans.every(l => l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
 
-    for (const planName in allPlans) {
-        const plan = allPlans[planName];
-        
-        if (plan.sunset && new Date() >= plan.sunset) {
-          continue;
+        for (const planName in allPlans) {
+            const plan = allPlans[planName];
+            
+            if (plan.sunset && new Date() >= plan.sunset) continue;
+            if (planName === 'New IBR' && !hasOnlyPost2014) continue;
+            if (planName === 'Old IBR' && !hasPre2014) continue;
+            if (planName === 'PAYE' && hasPre2014) continue;
+
+            // Hide new plans from grandfathered unless they are comparing
+            if ((planName === 'Standardized Tiered Plan' || planName === 'RAP') && !isNewBorrower) {
+                 // allow them to be shown for comparison
+            } else if (planName === 'Standardized Tiered Plan' || planName === 'RAP') {
+                continue
+            }
+            
+            filteredPlans[planName] = plan;
         }
-
-        if (planName === 'Old IBR' && !hasPre2014) continue;
-        if (planName === 'New IBR' && !hasOnlyPost2014) continue;
-        if (planName === 'PAYE' && hasPre2014) continue; // PAYE is not for borrowers with pre-2014 loans
-        
-        filteredPlans[planName] = plan;
     }
 
     return { plans: filteredPlans, contaminationWarning: false };
@@ -137,7 +144,7 @@ export default function StudentLoanPayoff() {
             <Input label="Adjusted Gross Income (AGI)" id="agi" type="number" placeholder="50000" value={agi} onChange={(e) => setAgi(e.target.value)} />
             <Input label="Family Size" id="familySize" type="number" min="1" value={familySize} onChange={(e) => setFamilySize(e.target.value)} />
             <Select label="State of Residence" id="state" value={stateOfResidence} onChange={(e) => setStateOfResidence(e.target.value)}>
-              <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
+              <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="DC">District Of Columbia</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
             </Select>
             <Select label="Filing Status" id="filingStatus" value={filingStatus} onChange={(e) => setFilingStatus(e.target.value)}>
               <option value="single">Single</option>
