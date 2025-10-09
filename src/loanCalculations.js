@@ -41,63 +41,19 @@ const calculateDiscretionaryIncome = (agi, familySize, stateOfResidence, poverty
   return Math.max(0, agi - (povertyGuideline * povertyLineMultiplier));
 };
 
-// Simulates income-driven repayment over time with income growth
-const simulateIDRPayment = (initialAgi, familySize, stateOfResidence, initialBalance, annualRate, paymentPercentage, povertyMultiplier, maxYears, incomeGrowthRate = 0.03) => {
-  let balance = initialBalance;
-  let totalPaid = 0;
-  let currentAgi = initialAgi;
-  const monthlyRate = annualRate / 12;
-  
-  for (let year = 0; year < maxYears; year++) {
-    // Calculate discretionary income for this year
-    const discretionaryIncome = calculateDiscretionaryIncome(currentAgi, familySize, stateOfResidence, povertyMultiplier);
-    const monthlyPayment = (discretionaryIncome * paymentPercentage) / 12;
-    
-    // Process 12 months of payments
-    for (let month = 0; month < 12; month++) {
-      if (balance <= 0) break;
-      
-      // Add interest
-      const interestCharge = balance * monthlyRate;
-      balance += interestCharge;
-      
-      // Make payment
-      const actualPayment = Math.min(monthlyPayment, balance);
-      balance -= actualPayment;
-      totalPaid += actualPayment;
-    }
-    
-    // Stop if loan is paid off
-    if (balance <= 0) {
-      const payoffDate = new Date();
-      payoffDate.setFullYear(payoffDate.getFullYear() + year);
-      payoffDate.setMonth(payoffDate.getMonth() + Math.ceil((balance + totalPaid) / monthlyPayment));
-      return { 
-        totalPaid, 
-        forgivenessDate: payoffDate, 
-        monthlyPayment: (discretionaryIncome * paymentPercentage) / 12,
-        paidOff: true 
-      };
-    }
-    
-    // Increase income for next year
-    currentAgi *= (1 + incomeGrowthRate);
-  }
-  
-  // Loan not fully paid - forgiveness applies
-  const forgivenessDate = new Date();
-  forgivenessDate.setFullYear(forgivenessDate.getFullYear() + maxYears);
-  
-  // Calculate initial monthly payment for display
-  const initialDiscretionary = calculateDiscretionaryIncome(initialAgi, familySize, stateOfResidence, povertyMultiplier);
-  const initialMonthlyPayment = (initialDiscretionary * paymentPercentage) / 12;
-  
-  return { 
-    totalPaid, 
-    forgivenessDate, 
-    monthlyPayment: initialMonthlyPayment,
-    paidOff: false 
-  };
+// Determines the RAP payment percentage based on AGI tier
+const getRAPPaymentPercentage = (agi) => {
+  if (agi <= 32000) return 0.00;  // 0%
+  if (agi <= 40000) return 0.01;  // 1%
+  if (agi <= 45000) return 0.02;  // 2%
+  if (agi <= 50000) return 0.03;  // 3%
+  if (agi <= 60000) return 0.04;  // 4%
+  if (agi <= 70000) return 0.05;  // 5%
+  if (agi <= 80000) return 0.06;  // 6%
+  if (agi <= 90000) return 0.07;  // 7%
+  if (agi <= 100000) return 0.08; // 8%
+  if (agi <= 125000) return 0.09; // 9%
+  return 0.10; // 10% for AGI > $125,000
 };
 
 // Determines term length for Standardized Tiered Plan based on balance
@@ -120,6 +76,7 @@ export const calculatePlans = (financialProfile, loans) => {
   const { agi, familySize, stateOfResidence } = financialProfile;
 
   const plans = {};
+  const incomeGrowthRate = 0.03; // 3% annual income growth
 
   // 1. 10-Year Standard Plan
   const standardMonthly = calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, 10);
@@ -129,32 +86,39 @@ export const calculatePlans = (financialProfile, loans) => {
     payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)),
   };
 
-  // 2. Graduated Plan (Real calculation with 2-year increases)
-  // Payments start at about 50% of standard and increase by ~7% every 2 years
-  let graduatedBalance = totalFederalBalance;
-  let graduatedTotalPaid = 0;
-  const monthlyRate = weightedAverageRate / 12;
-  const initialGraduatedPayment = standardMonthly * 0.5; // Start at 50% of standard
-  
-  for (let period = 0; period < 5; period++) { // 5 periods of 2 years each = 10 years
-    const periodPayment = initialGraduatedPayment * Math.pow(1.07, period); // 7% increase every 2 years
+  // 2. Graduated Plan - Accurate simulation with payments increasing every 2 years
+  {
+    let balance = totalFederalBalance;
+    let totalPaid = 0;
+    const monthlyRate = weightedAverageRate / 12;
+    const initialPayment = standardMonthly * 0.5; // Start at 50% of standard
+    let monthCount = 0;
     
-    for (let month = 0; month < 24; month++) { // 24 months per period
-      const interestCharge = graduatedBalance * monthlyRate;
-      graduatedBalance += interestCharge;
-      graduatedBalance -= periodPayment;
-      graduatedTotalPaid += periodPayment;
+    for (let period = 0; period < 5; period++) { // 5 periods of 2 years each
+      const periodPayment = initialPayment * Math.pow(1.07, period); // 7% increase every 2 years
       
-      if (graduatedBalance <= 0) break;
+      for (let month = 0; month < 24; month++) {
+        if (balance <= 0) break;
+        
+        const interestCharge = balance * monthlyRate;
+        balance += interestCharge;
+        balance -= periodPayment;
+        totalPaid += periodPayment;
+        monthCount++;
+      }
+      
+      if (balance <= 0) break;
     }
-    if (graduatedBalance <= 0) break;
+    
+    const payoffDate = new Date();
+    payoffDate.setMonth(payoffDate.getMonth() + monthCount);
+    
+    plans['Graduated'] = {
+      monthlyPayment: `Starts at $${initialPayment.toFixed(2)}, increases every 2 years`,
+      totalPaid: totalPaid,
+      payoffDate: payoffDate,
+    };
   }
-  
-  plans['Graduated'] = {
-    monthlyPayment: `Starts at ${initialGraduatedPayment.toFixed(2)}, increases every 2 years`,
-    totalPaid: graduatedTotalPaid,
-    payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)),
-  };
 
   // 3. Extended Plan
   if (totalFederalBalance >= 30000) {
@@ -166,115 +130,270 @@ export const calculatePlans = (financialProfile, loans) => {
     };
   }
 
-  // --- Income-Driven Repayment (IDR) Plans with Income Growth Simulation ---
+  // 4. Old IBR - 15% of discretionary income, 25-year forgiveness
+  {
+    let balance = totalFederalBalance;
+    let totalPaid = 0;
+    let currentAgi = agi;
+    const monthlyRate = weightedAverageRate / 12;
+    const maxYears = 25;
+    
+    for (let year = 0; year < maxYears; year++) {
+      const discretionaryIncome = calculateDiscretionaryIncome(currentAgi, familySize, stateOfResidence, 1.5);
+      const monthlyPayment = (discretionaryIncome * 0.15) / 12;
+      
+      for (let month = 0; month < 12; month++) {
+        if (balance <= 0) break;
+        
+        const interestCharge = balance * monthlyRate;
+        balance += interestCharge;
+        
+        const actualPayment = Math.min(monthlyPayment, balance);
+        balance -= actualPayment;
+        totalPaid += actualPayment;
+      }
+      
+      if (balance <= 0) break;
+      currentAgi *= (1 + incomeGrowthRate);
+    }
+    
+    const forgivenessDate = new Date();
+    forgivenessDate.setFullYear(forgivenessDate.getFullYear() + (balance <= 0 ? Math.ceil(totalPaid / ((calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.5) * 0.15) / 12) / 12) : maxYears));
+    
+    const initialDiscretionary = calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.5);
+    const initialMonthlyPayment = (initialDiscretionary * 0.15) / 12;
+    
+    plans['Old IBR'] = {
+      monthlyPayment: initialMonthlyPayment,
+      totalPaid: totalPaid,
+      forgivenessDate: forgivenessDate,
+      isIdr: true,
+    };
+  }
 
-  // 4. Old IBR (For pre-2014 borrowers) - 15% of discretionary income, 25-year forgiveness
-  const oldIbrResult = simulateIDRPayment(
-    agi, 
-    familySize, 
-    stateOfResidence, 
-    totalFederalBalance, 
-    weightedAverageRate, 
-    0.15, // 15% of discretionary income
-    1.5,  // 150% of poverty line
-    25    // 25 years
-  );
-  plans['Old IBR'] = {
-    monthlyPayment: oldIbrResult.monthlyPayment,
-    totalPaid: oldIbrResult.totalPaid,
-    forgivenessDate: oldIbrResult.forgivenessDate,
-    isIdr: true,
-  };
+  // 5. New IBR - 10% of discretionary income, 20-year forgiveness
+  {
+    let balance = totalFederalBalance;
+    let totalPaid = 0;
+    let currentAgi = agi;
+    const monthlyRate = weightedAverageRate / 12;
+    const maxYears = 20;
+    
+    for (let year = 0; year < maxYears; year++) {
+      const discretionaryIncome = calculateDiscretionaryIncome(currentAgi, familySize, stateOfResidence, 1.5);
+      const monthlyPayment = (discretionaryIncome * 0.10) / 12;
+      
+      for (let month = 0; month < 12; month++) {
+        if (balance <= 0) break;
+        
+        const interestCharge = balance * monthlyRate;
+        balance += interestCharge;
+        
+        const actualPayment = Math.min(monthlyPayment, balance);
+        balance -= actualPayment;
+        totalPaid += actualPayment;
+      }
+      
+      if (balance <= 0) break;
+      currentAgi *= (1 + incomeGrowthRate);
+    }
+    
+    const forgivenessDate = new Date();
+    forgivenessDate.setFullYear(forgivenessDate.getFullYear() + (balance <= 0 ? Math.ceil(totalPaid / ((calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.5) * 0.10) / 12) / 12) : maxYears));
+    
+    const initialDiscretionary = calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.5);
+    const initialMonthlyPayment = (initialDiscretionary * 0.10) / 12;
+    
+    plans['New IBR'] = {
+      monthlyPayment: initialMonthlyPayment,
+      totalPaid: totalPaid,
+      forgivenessDate: forgivenessDate,
+      isIdr: true,
+    };
+  }
 
-  // 5. New IBR (For post-2014 borrowers) - 10% of discretionary income, 20-year forgiveness
-  const newIbrResult = simulateIDRPayment(
-    agi, 
-    familySize, 
-    stateOfResidence, 
-    totalFederalBalance, 
-    weightedAverageRate, 
-    0.10, // 10% of discretionary income
-    1.5,  // 150% of poverty line
-    20    // 20 years
-  );
-  plans['New IBR'] = {
-    monthlyPayment: newIbrResult.monthlyPayment,
-    totalPaid: newIbrResult.totalPaid,
-    forgivenessDate: newIbrResult.forgivenessDate,
-    isIdr: true,
-  };
+  // 6. PAYE - 10% of discretionary income, 20-year forgiveness
+  {
+    let balance = totalFederalBalance;
+    let totalPaid = 0;
+    let currentAgi = agi;
+    const monthlyRate = weightedAverageRate / 12;
+    const maxYears = 20;
+    
+    for (let year = 0; year < maxYears; year++) {
+      const discretionaryIncome = calculateDiscretionaryIncome(currentAgi, familySize, stateOfResidence, 1.5);
+      const monthlyPayment = (discretionaryIncome * 0.10) / 12;
+      
+      for (let month = 0; month < 12; month++) {
+        if (balance <= 0) break;
+        
+        const interestCharge = balance * monthlyRate;
+        balance += interestCharge;
+        
+        const actualPayment = Math.min(monthlyPayment, balance);
+        balance -= actualPayment;
+        totalPaid += actualPayment;
+      }
+      
+      if (balance <= 0) break;
+      currentAgi *= (1 + incomeGrowthRate);
+    }
+    
+    const forgivenessDate = new Date();
+    forgivenessDate.setFullYear(forgivenessDate.getFullYear() + (balance <= 0 ? Math.ceil(totalPaid / ((calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.5) * 0.10) / 12) / 12) : maxYears));
+    
+    const initialDiscretionary = calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.5);
+    const initialMonthlyPayment = (initialDiscretionary * 0.10) / 12;
+    
+    plans['PAYE'] = {
+      monthlyPayment: initialMonthlyPayment,
+      totalPaid: totalPaid,
+      forgivenessDate: forgivenessDate,
+      isIdr: true,
+      sunset: new Date('2028-07-01'),
+    };
+  }
 
-  // 6. PAYE (For post-2014 borrowers) - 10% of discretionary income, 20-year forgiveness
-  const payeResult = simulateIDRPayment(
-    agi, 
-    familySize, 
-    stateOfResidence, 
-    totalFederalBalance, 
-    weightedAverageRate, 
-    0.10, // 10% of discretionary income
-    1.5,  // 150% of poverty line
-    20    // 20 years
-  );
-  plans['PAYE'] = {
-    monthlyPayment: payeResult.monthlyPayment,
-    totalPaid: payeResult.totalPaid,
-    forgivenessDate: payeResult.forgivenessDate,
-    isIdr: true,
-    sunset: new Date('2028-07-01'),
-  };
+  // 7. RAP - Complete accurate simulation with all RAP rules
+  {
+    let balance = totalFederalBalance;
+    let totalPaid = 0;
+    let currentAgi = agi;
+    const monthlyRate = weightedAverageRate / 12;
+    const maxYears = 30; // RAP has 30-year forgiveness
+    const dependentDeduction = 50; // $50 per dependent per year
+    const principalReductionGuarantee = 50; // $50 per year minimum principal reduction
+    
+    const numberOfDependents = Math.max(0, familySize - 1); // Assuming family size includes borrower
+    
+    for (let year = 0; year < maxYears; year++) {
+      // Calculate base payment using AGI tier
+      const paymentPercentage = getRAPPaymentPercentage(currentAgi);
+      let annualPayment = currentAgi * paymentPercentage;
+      
+      // Apply dependent deduction
+      annualPayment = Math.max(0, annualPayment - (dependentDeduction * numberOfDependents));
+      
+      const monthlyPayment = annualPayment / 12;
+      let yearlyPrincipalReduction = 0;
+      
+      for (let month = 0; month < 12; month++) {
+        if (balance <= 0) break;
+        
+        // Calculate interest for the month
+        const interestCharge = balance * monthlyRate;
+        
+        // Apply Interest Subsidy - waive unpaid interest
+        // (If payment doesn't cover interest, the unpaid interest is waived)
+        if (monthlyPayment >= interestCharge) {
+          // Payment covers interest and reduces principal
+          balance += interestCharge;
+          balance -= monthlyPayment;
+          yearlyPrincipalReduction += (monthlyPayment - interestCharge);
+          totalPaid += monthlyPayment;
+        } else {
+          // Payment doesn't cover interest - interest is waived (Interest Subsidy)
+          // Only the payment amount reduces principal
+          balance -= monthlyPayment;
+          yearlyPrincipalReduction += monthlyPayment;
+          totalPaid += monthlyPayment;
+        }
+      }
+      
+      // Apply $50 Principal Reduction Guarantee
+      if (yearlyPrincipalReduction < principalReductionGuarantee && balance > 0) {
+        const additionalReduction = principalReductionGuarantee - yearlyPrincipalReduction;
+        balance -= additionalReduction;
+        // Note: This reduction doesn't count toward totalPaid as it's a benefit
+      }
+      
+      if (balance <= 0) break;
+      currentAgi *= (1 + incomeGrowthRate);
+    }
+    
+    const forgivenessDate = new Date();
+    if (balance <= 0) {
+      // Calculate actual payoff time
+      const yearsToPayoff = Math.ceil(totalPaid / ((agi * getRAPPaymentPercentage(agi) - (dependentDeduction * numberOfDependents)) / 12) / 12);
+      forgivenessDate.setFullYear(forgivenessDate.getFullYear() + yearsToPayoff);
+    } else {
+      forgivenessDate.setFullYear(forgivenessDate.getFullYear() + maxYears);
+    }
+    
+    // Calculate initial monthly payment for display
+    let initialAnnualPayment = agi * getRAPPaymentPercentage(agi);
+    initialAnnualPayment = Math.max(0, initialAnnualPayment - (dependentDeduction * numberOfDependents));
+    const initialMonthlyPayment = initialAnnualPayment / 12;
+    
+    plans['RAP'] = {
+      monthlyPayment: initialMonthlyPayment,
+      totalPaid: totalPaid,
+      forgivenessDate: forgivenessDate,
+      isIdr: true,
+    };
+  }
 
-  // 7. RAP (SAVE) Plan - 5% of discretionary income (simplified for undergrad)
-  const rapResult = simulateIDRPayment(
-    agi, 
-    familySize, 
-    stateOfResidence, 
-    totalFederalBalance, 
-    weightedAverageRate, 
-    0.05, // 5% of discretionary income
-    2.25, // 225% of poverty line
-    20    // 20 years
-  );
-  plans['RAP'] = {
-    monthlyPayment: rapResult.monthlyPayment,
-    totalPaid: rapResult.totalPaid,
-    forgivenessDate: rapResult.forgivenessDate,
-    isIdr: true,
-  };
+  // 8. ICR - 20% of discretionary income (100% poverty line), 25-year forgiveness
+  {
+    let balance = totalFederalBalance;
+    let totalPaid = 0;
+    let currentAgi = agi;
+    const monthlyRate = weightedAverageRate / 12;
+    const maxYears = 25;
+    
+    for (let year = 0; year < maxYears; year++) {
+      const discretionaryIncome = calculateDiscretionaryIncome(currentAgi, familySize, stateOfResidence, 1.0);
+      const icrOption1 = (discretionaryIncome * 0.20) / 12;
+      const icrOption2 = calculateAmortizedPayment(balance, weightedAverageRate, 12);
+      const monthlyPayment = Math.min(icrOption1, icrOption2);
+      
+      for (let month = 0; month < 12; month++) {
+        if (balance <= 0) break;
+        
+        const interestCharge = balance * monthlyRate;
+        balance += interestCharge;
+        
+        const actualPayment = Math.min(monthlyPayment, balance);
+        balance -= actualPayment;
+        totalPaid += actualPayment;
+      }
+      
+      if (balance <= 0) break;
+      currentAgi *= (1 + incomeGrowthRate);
+    }
+    
+    const forgivenessDate = new Date();
+    forgivenessDate.setFullYear(forgivenessDate.getFullYear() + (balance <= 0 ? Math.ceil(totalPaid / ((calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.0) * 0.20) / 12) / 12) : maxYears));
+    
+    const initialDiscretionary = calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.0);
+    const icrOption1 = (initialDiscretionary * 0.20) / 12;
+    const icrOption2 = calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, 12);
+    const initialMonthlyPayment = Math.min(icrOption1, icrOption2);
+    
+    plans['ICR'] = {
+      monthlyPayment: initialMonthlyPayment,
+      totalPaid: totalPaid,
+      forgivenessDate: forgivenessDate,
+      isIdr: true,
+      sunset: new Date('2028-07-01'),
+    };
+  }
 
-  // 8. ICR Plan - Lesser of 20% of discretionary income or fixed payment over 12 years
-  const icrDiscretionary = calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.0);
-  const icrMonthlyOption1 = (icrDiscretionary * 0.20) / 12;
-  const icrMonthlyOption2 = calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, 12);
-  const icrInitialPayment = Math.min(icrMonthlyOption1, icrMonthlyOption2);
-  
-  // Simulate ICR with income growth
-  const icrResult = simulateIDRPayment(
-    agi, 
-    familySize, 
-    stateOfResidence, 
-    totalFederalBalance, 
-    weightedAverageRate, 
-    0.20, // 20% of discretionary income
-    1.0,  // 100% of poverty line
-    25    // 25 years
-  );
-  
-  plans['ICR'] = {
-    monthlyPayment: icrInitialPayment,
-    totalPaid: icrResult.totalPaid,
-    forgivenessDate: icrResult.forgivenessDate,
-    isIdr: true,
-    sunset: new Date('2028-07-01'),
-  };
-
-  // 9. Standardized Tiered Plan - Term based on balance
-  const tieredTerm = getStandardizedTieredTerm(totalFederalBalance);
-  const tieredMonthly = calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, tieredTerm);
-  plans['Standardized Tiered Plan'] = {
-    monthlyPayment: tieredMonthly,
-    totalPaid: tieredMonthly * (tieredTerm * 12),
-    payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + tieredTerm)),
-  };
+  // 9. Standardized Tiered Plan - Term based on balance with accurate simulation
+  {
+    const tieredTerm = getStandardizedTieredTerm(totalFederalBalance);
+    const tieredMonthly = calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, tieredTerm);
+    const totalMonths = tieredTerm * 12;
+    
+    const payoffDate = new Date();
+    payoffDate.setFullYear(payoffDate.getFullYear() + tieredTerm);
+    
+    plans['Standardized Tiered Plan'] = {
+      monthlyPayment: tieredMonthly,
+      totalPaid: tieredMonthly * totalMonths,
+      payoffDate: payoffDate,
+    };
+  }
 
   return plans;
 };
