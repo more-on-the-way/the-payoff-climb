@@ -110,7 +110,7 @@ export default function StudentLoanPayoff() {
             if (plan.sunset && new Date() >= plan.sunset) continue;
             if (planName === 'New IBR' && !hasOnlyPost2014) continue;
             if (planName === 'Old IBR' && !hasPre2014) continue;
-            if (planName === 'PAYE' && hasPre2014) continue;
+        
 
             // Hide new plans from grandfathered unless they are comparing
             if ((planName === 'Standardized Tiered Plan' || planName === 'RAP') && !isNewBorrower) {
