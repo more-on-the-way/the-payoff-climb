@@ -4,7 +4,7 @@ import { Calculator, TrendingUp, Target, Award, Save, Download, RefreshCw, BarCh
 export default function StudentLoanPayoff() {
   const [view, setView] = useState('input');
   const [loans, setLoans] = useState([
-    { id: 1, name: '', balance: '', rate: '', minPayment: '', gracePeriod: false, graceMonths: '' }
+    { id: 1, type: null, name: '', balance: '', rate: '', minPayment: '', gracePeriod: false, graceMonths: '', lender: '' }
   ]);
   const [goalMode, setGoalMode] = useState('extra');
   const [extraPayment, setExtraPayment] = useState('');
@@ -29,12 +29,14 @@ export default function StudentLoanPayoff() {
   const addLoan = () => {
     setLoans([...loans, { 
       id: Date.now(), 
+      type: null,
       name: '', 
       balance: '', 
       rate: '', 
       minPayment: '', 
       gracePeriod: false, 
-      graceMonths: '' 
+      graceMonths: '',
+      lender: ''
     }]);
   };
 
@@ -46,6 +48,10 @@ export default function StudentLoanPayoff() {
 
   const updateLoan = (id, field, value) => {
     setLoans(loans.map(l => l.id === id ? { ...l, [field]: value } : l));
+  };
+
+  const setLoanType = (id, type) => {
+    setLoans(loans.map(l => l.id === id ? { ...l, type: type } : l));
   };
 
   const calculateGraceInterest = (loan) => {
@@ -366,66 +372,89 @@ export default function StudentLoanPayoff() {
                 {loans.map((loan, idx) => (
                   <div key={loan.id} className="bg-gray-50 p-6 rounded-xl mb-4 border border-gray-200">
                     <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-semibold text-gray-700">Loan #{idx + 1}</h3>
+                      <div>
+                        <h3 className="font-semibold text-gray-700">Loan #{idx + 1}</h3>
+                        {loan.type && <span className="text-sm bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">{loan.type} Loan</span>}
+                      </div>
                       {loans.length > 1 && (
-                        <button onClick={() => removeLoan(loan.id)} className="text-red-600 hover:text-red-800 text-sm">
+                        <button onClick={() => removeLoan(loan.id)} className="text-red-600 hover:text-red-800 text-sm font-semibold">
                           Remove
                         </button>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <input
-                        type="text"
-                        placeholder="Loan Name (e.g., 'FedLoan')"
-                        value={loan.name}
-                        onChange={(e) => updateLoan(loan.id, 'name', e.target.value)}
-                        className="col-span-2 px-4 py-2 border rounded-lg"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Current Balance ($)"
-                        value={loan.balance}
-                        onChange={(e) => updateLoan(loan.id, 'balance', e.target.value)}
-                        className="px-4 py-2 border rounded-lg"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Interest Rate (%)"
-                        value={loan.rate}
-                        onChange={(e) => updateLoan(loan.id, 'rate', e.target.value)}
-                        className="px-4 py-2 border rounded-lg"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Minimum Monthly Payment ($)"
-                        value={loan.minPayment}
-                        onChange={(e) => updateLoan(loan.id, 'minPayment', e.target.value)}
-                        className="px-4 py-2 border rounded-lg col-span-2"
-                      />
-                    </div>
+                    {!loan.type ? (
+                      <div className="flex gap-4">
+                        <button onClick={() => setLoanType(loan.id, 'Federal')} className="flex-1 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600">Federal Loan</button>
+                        <button onClick={() => setLoanType(loan.id, 'Private')} className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600">Private Loan</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <input
+                            type="text"
+                            placeholder="Loan Name (e.g., 'FedLoan servicing')"
+                            value={loan.name}
+                            onChange={(e) => updateLoan(loan.id, 'name', e.target.value)}
+                            className="col-span-2 px-4 py-2 border rounded-lg"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Current Balance ($)"
+                            value={loan.balance}
+                            onChange={(e) => updateLoan(loan.id, 'balance', e.target.value)}
+                            className="px-4 py-2 border rounded-lg"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Interest Rate (%)"
+                            value={loan.rate}
+                            onChange={(e) => updateLoan(loan.id, 'rate', e.target.value)}
+                            className="px-4 py-2 border rounded-lg"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Minimum Monthly Payment ($)"
+                            value={loan.minPayment}
+                            onChange={(e) => updateLoan(loan.id, 'minPayment', e.target.value)}
+                            className="px-4 py-2 border rounded-lg col-span-2"
+                          />
+                           {loan.type === 'Private' && (
+                            <input
+                              type="text"
+                              placeholder="Lender Name"
+                              value={loan.lender}
+                              onChange={(e) => updateLoan(loan.id, 'lender', e.target.value)}
+                              className="col-span-2 px-4 py-2 border rounded-lg"
+                            />
+                          )}
+                        </div>
 
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={loan.gracePeriod}
-                          onChange={(e) => updateLoan(loan.id, 'gracePeriod', e.target.checked)}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm text-gray-700">Is this loan currently in a grace period?</span>
-                      </label>
+                        {loan.type === 'Federal' && (
+                          <div className="space-y-3">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={loan.gracePeriod}
+                                onChange={(e) => updateLoan(loan.id, 'gracePeriod', e.target.checked)}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-700">Is this loan currently in a grace period?</span>
+                            </label>
 
-                      {loan.gracePeriod && (
-                        <input
-                          type="number"
-                          placeholder="Months remaining in grace period"
-                          value={loan.graceMonths}
-                          onChange={(e) => updateLoan(loan.id, 'graceMonths', e.target.value)}
-                          className="px-4 py-2 border rounded-lg w-full"
-                        />
-                      )}
-                    </div>
+                            {loan.gracePeriod && (
+                              <input
+                                type="number"
+                                placeholder="Months remaining in grace period"
+                                value={loan.graceMonths}
+                                onChange={(e) => updateLoan(loan.id, 'graceMonths', e.target.value)}
+                                className="px-4 py-2 border rounded-lg w-full"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
