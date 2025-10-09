@@ -295,7 +295,7 @@ export default function StudentLoanPayoff() {
               </Button>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     );
   }
