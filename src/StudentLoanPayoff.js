@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { PlusCircle, XCircle } from 'lucide-react';
+import { PlusCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { calculatePlans } from './loanCalculations';
 
-// Reusable UI Components
+// --- Reusable UI Components ---
 const Card = ({ children, className = '', ...props }) => (
   <div className={`bg-white rounded-2xl shadow-lg p-6 sm:p-8 ${className}`} {...props}>
     {children}
@@ -24,10 +25,27 @@ const Select = ({ label, id, children, ...props }) => (
   </div>
 );
 
-// Main Application Component
+const ResultsCard = ({ title, plan, warning }) => {
+    const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
+    const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
+  
+    return (
+      <div className="bg-gray-50 rounded-lg p-4 border">
+        <h3 className="font-bold text-lg text-indigo-700">{title}</h3>
+        {warning && <p className="text-sm text-yellow-700 my-2">{warning}</p>}
+        <div className="mt-2 space-y-1 text-sm">
+          <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
+          <p><span className="font-semibold">Total Paid:</span> {formatCurrency(plan.totalPaid)}</p>
+          <p><span className="font-semibold">{plan.isIdr ? 'Forgiveness Date:' : 'Payoff Date:'}</span> {formatDate(plan.isIdr ? plan.forgivenessDate : plan.payoffDate)}</p>
+        </div>
+      </div>
+    );
+};
+
+// --- Main Application Component ---
 export default function StudentLoanPayoff() {
   // State for Financial Profile
-  const [agi, setAgi] = useState('');
+  const [agi, setAgi] = useState('50000');
   const [familySize, setFamilySize] = useState('1');
   const [stateOfResidence, setStateOfResidence] = useState('CA');
   const [filingStatus, setFilingStatus] = useState('single');
@@ -52,7 +70,52 @@ export default function StudentLoanPayoff() {
   const showContaminationQuestion = useMemo(() => {
     return loans.some(loan => loan.type === 'Federal' && (loan.originationDate === 'before_2014' || loan.originationDate === 'after_2014'));
   }, [loans]);
-  
+
+  // --- Smart Logic for Results ---
+  const eligiblePlans = useMemo(() => {
+    const financialProfile = { agi: parseFloat(agi), familySize: parseInt(familySize), stateOfResidence, filingStatus };
+    const hasFederalLoans = loans.some(l => l.type === 'Federal' && parseFloat(l.balance) > 0);
+
+    if (!financialProfile.agi || !hasFederalLoans) {
+      return { plans: {}, contaminationWarning: false };
+    }
+
+    const allPlans = calculatePlans(financialProfile, loans);
+    let filteredPlans = {};
+    
+    const hasPre2026Loan = loans.some(l => l.type === 'Federal' && (l.originationDate === 'before_2014' || l.originationDate === 'after_2014'));
+    const contaminationTriggered = hasPre2026Loan && plansToTakeNewLoan === 'yes';
+
+    if (contaminationTriggered) {
+      return {
+        plans: {
+          'RAP': allPlans['RAP'],
+          'Standardized Tiered Plan': allPlans['Standardized Tiered Plan'],
+        },
+        contaminationWarning: true,
+      };
+    }
+
+    const hasOnlyAfter2014 = loans.every(l => l.type !== 'Federal' || l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
+    const hasPre2014 = loans.some(l => l.type === 'Federal' && l.originationDate === 'before_2014');
+
+    for (const planName in allPlans) {
+        const plan = allPlans[planName];
+        // Sunset logic
+        if (plan.sunset && new Date() >= plan.sunset) {
+          continue;
+        }
+
+        if (planName === 'Old IBR' && !hasPre2014) continue;
+        if ((planName === 'New IBR' || planName === 'PAYE') && !hasOnlyAfter2014) continue;
+        
+        filteredPlans[planName] = plan;
+    }
+
+    return { plans: filteredPlans, contaminationWarning: false };
+  }, [agi, familySize, stateOfResidence, filingStatus, loans, plansToTakeNewLoan]);
+
+
   // --- JSX to Render the Form ---
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -141,6 +204,32 @@ export default function StudentLoanPayoff() {
               <option value="no">No</option>
               <option value="yes">Yes</option>
             </Select>
+          </Card>
+        )}
+
+        {/* Results Section */}
+        {Object.keys(eligiblePlans.plans).length > 0 && (
+          <Card>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Eligible Repayment Plans</h2>
+            {eligiblePlans.contaminationWarning && (
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md flex items-center gap-3">
+                <AlertTriangle size={24} />
+                <div>
+                  <h3 className="font-bold">Important Warning</h3>
+                  <p>Because you have older loans and plan to take out new loans after July 1, 2026, your plan options are limited to avoid negative interactions between loan terms.</p>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(eligiblePlans.plans).map(([name, plan]) => (
+                <ResultsCard 
+                  key={name}
+                  title={name}
+                  plan={plan}
+                  warning={plan.sunset && `⚠️ This plan ends on ${plan.sunset.toLocaleDateString()}.`}
+                />
+              ))}
+            </div>
           </Card>
         )}
       </div>
