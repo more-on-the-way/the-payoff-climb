@@ -94,7 +94,6 @@ export default function StudentLoanPayoff() {
             const plan = allPlans[planName];
             if (plan.sunset && new Date() >= plan.sunset) continue;
             
-            // Corrected Logic
             if (planName === 'New IBR' && !hasOnlyPost2014) continue;
             if (planName === 'Old IBR' && hasOnlyPost2014) continue;
             if (planName === 'PAYE' && hasPre2014) continue;
