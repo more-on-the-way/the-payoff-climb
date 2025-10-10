@@ -135,7 +135,6 @@ export default function StudentLoanPayoff() {
         
         if (planName === 'New IBR' && !hasOnlyPost2014) continue;
         if (planName === 'Old IBR' && hasOnlyPost2014) continue;
-        if (planName === 'PAYE' && hasPre2014) continue;
 
         filteredPlans[planName] = plan;
       }
