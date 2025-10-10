@@ -1,8 +1,10 @@
 // --- UTILITY FUNCTIONS ---
 
 function getPovertyGuideline(familySize, stateOfResidence) {
+  // Simplified 2024 poverty guidelines for the 48 contiguous states.
   const basePovertyLine = 15060;
   const perMember = 5380;
+  // Alaska and Hawaii have higher guidelines, approximated here.
   const multiplier = (stateOfResidence === 'AK' || stateOfResidence === 'HI') ? 1.25 : 1;
   return (basePovertyLine + (Math.max(0, familySize - 1) * perMember)) * multiplier;
 };
@@ -17,11 +19,15 @@ function calculateAmortizedPayment(principal, annualRate, years) {
   const monthlyRate = annualRate / 12;
   const numberOfPayments = years * 12;
   if (monthlyRate <= 0) return principal / numberOfPayments;
+  // Standard amortization formula
   return principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
 };
 
 // --- SIMULATION ENGINES ---
 
+/**
+ * Simulates a standard IDR plan with annual income growth and a payment cap.
+ */
 function simulateIDR({ principal, annualRate, forgivenessYears, initialAgi, familySize, stateOfResidence, povertyMultiplier, paymentPercentage, standardPaymentCap }) {
   let balance = principal;
   let totalPaid = 0;
@@ -57,6 +63,9 @@ function simulateIDR({ principal, annualRate, forgivenessYears, initialAgi, fami
   return { totalPaid, forgivenessDate: new Date(new Date().setFullYear(new Date().getFullYear() + forgivenessYears)), monthlyPayment: initialMonthlyPayment };
 }
 
+/**
+ * Simulates the new RAP plan with its unique rules and a payment cap.
+ */
 function simulateRAP({ principal, annualRate, initialAgi, familySize, stateOfResidence, filingStatus, standardPaymentCap }) {
     let balance = principal;
     let totalPaid = 0;
@@ -163,7 +172,7 @@ export const calculatePlans = (financialProfile, loans) => {
   
   const icrMonthly = Math.min(
       (calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.0) * 0.20) / 12,
-      calculateAmortizedPayment(totalFederalBalance, weightedAverageRate * 1.2, 12)
+      calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, 12)
   );
   const icrResult = simulateIDR({ principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 25, initialAgi: agi, familySize, stateOfResidence, povertyMultiplier: 1.0, paymentPercentage: 0.20, standardPaymentCap: standardMonthly });
   plans['ICR'] = { ...icrResult, monthlyPayment: Math.min(icrMonthly, standardMonthly), isIdr: true, sunset: new Date('2028-07-01')};
