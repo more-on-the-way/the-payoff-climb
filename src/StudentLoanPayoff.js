@@ -1,149 +1,129 @@
 import React, { useState, useMemo } from 'react';
 import { PlusCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { calculatePlans } from './loanCalculations';
+import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment } from './loanCalculations';
 
 // --- Reusable UI Components ---
 const Card = ({ children, className = '', ...props }) => (
-  <div className={`bg-white rounded-lg shadow-md p-6 ${className}`} {...props}>
+  <div className={`bg-white rounded-2xl shadow-lg p-6 sm:p-8 ${className}`} {...props}>
     {children}
   </div>
 );
 
 const Input = ({ label, id, ...props }) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-      {label}
-    </label>
-    <input
-      id={id}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      {...props}
-    />
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <input id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
   </div>
 );
 
 const Select = ({ label, id, children, ...props }) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-      {label}
-    </label>
-    <select
-      id={id}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      {...props}
-    >
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <select id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
       {children}
     </select>
   </div>
 );
 
 const ResultsCard = ({ title, plan, warning }) => {
-  const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
-  const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
+    const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
+    const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
+    
+    const dateToUse = plan.isIdr ? (plan.forgivenessDate || plan.payoffDate) : plan.payoffDate;
+    const dateLabel = plan.isIdr ? (plan.forgivenessDate ? 'Forgiveness Date:' : 'Payoff Date:') : 'Payoff Date:';
 
-  const dateToUse = plan.isIdr ? (plan.forgivenessDate || plan.payoffDate) : plan.payoffDate;
-  const dateLabel = plan.isIdr ? (plan.forgivenessDate ? 'Forgiveness Date:' : 'Payoff Date:') : 'Payoff Date:';
-
-  return (
-    <div className="bg-gray-50 rounded-lg p-4 border flex flex-col">
-      <h3 className="font-bold text-lg text-indigo-700">{title}</h3>
-      {warning && <p className="text-xs text-yellow-700 my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
-      <div className="mt-2 space-y-1 text-sm flex-grow">
-        <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
-        <p><span className="font-semibold">Total Paid:</span> {formatCurrency(plan.totalPaid)}</p>
-        <p><span className="font-semibold">{dateLabel}</span> {formatDate(dateToUse)}</p>
+    return (
+      <div className="bg-gray-50 rounded-lg p-4 border flex flex-col">
+        <h3 className="font-bold text-lg text-indigo-700">{title}</h3>
+        {warning && <p className="text-xs text-yellow-700 my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
+        <div className="mt-2 space-y-1 text-sm flex-grow">
+          <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
+          <p><span className="font-semibold">Total Paid:</span> {formatCurrency(plan.totalPaid)}</p>
+          <p><span className="font-semibold">{dateLabel}</span> {formatDate(dateToUse)}</p>
+          {plan.totalInterest != null && <p><span className="font-semibold">Total Interest:</span> {formatCurrency(plan.totalInterest)}</p>}
+        </div>
       </div>
-    </div>
-  );
+    );
 };
 
 // --- Main Application Component ---
 export default function StudentLoanPayoff() {
-  // State for Financial Profile
   const [agi, setAgi] = useState('50000');
   const [familySize, setFamilySize] = useState('1');
   const [stateOfResidence, setStateOfResidence] = useState('MO');
   const [filingStatus, setFilingStatus] = useState('single');
-
-  // State for Loans
   const [loans, setLoans] = useState([]);
   const [plansToTakeNewLoan, setPlansToTakeNewLoan] = useState(null);
+  const [refinanceRate, setRefinanceRate] = useState('');
+  const [refinanceTerm, setRefinanceTerm] = useState('');
+  const [extraPayment, setExtraPayment] = useState('');
+  
+  const addLoan = () => setLoans([...loans, { id: Date.now(), type: null, balance: '', rate: '', originationDate: '', term: '' }]);
+  const removeLoan = (id) => setLoans(loans.filter(loan => loan.id !== id));
+  const updateLoan = (id, field, value) => setLoans(loans.map(loan => (loan.id === id ? { ...loan, [field]: value } : loan)));
 
-  // --- Helper Functions ---
-  const addLoan = () => {
-    setLoans([...loans, { id: Date.now(), type: null, balance: '', rate: '', originationDate: '' }]);
-  };
+  const federalLoans = useMemo(() => loans.filter(l => l.type === 'Federal' && parseFloat(l.balance) > 0 && parseFloat(l.rate) >= 0), [loans]);
+  const privateLoans = useMemo(() => loans.filter(l => l.type === 'Private' && parseFloat(l.balance) > 0 && parseFloat(l.rate) >= 0 && parseFloat(l.term) > 0), [loans]);
+  const totalFederalBalance = useMemo(() => federalLoans.reduce((acc, loan) => acc + parseFloat(loan.balance || 0), 0), [federalLoans]);
+  const totalPrivateBalance = useMemo(() => privateLoans.reduce((acc, loan) => acc + parseFloat(loan.balance || 0), 0), [privateLoans]);
 
-  const removeLoan = (id) => {
-    setLoans(loans.filter(loan => loan.id !== id));
-  };
+  const showContaminationQuestion = useMemo(() => federalLoans.some(l => l.originationDate === 'before_2014' || l.originationDate === 'after_2014'), [federalLoans]);
 
-  const updateLoan = (id, field, value) => {
-    setLoans(loans.map(loan => (loan.id === id ? { ...loan, [field]: value } : loan)));
-  };
-
-  const showContaminationQuestion = useMemo(() => {
-    return loans.some(loan => loan.type === 'Federal' && (loan.originationDate === 'before_2014' || loan.originationDate === 'after_2014'));
-  }, [loans]);
-
-  // --- Smart Logic for Results ---
   const eligiblePlans = useMemo(() => {
     const financialProfile = { agi: parseFloat(agi), familySize: parseInt(familySize), stateOfResidence, filingStatus };
-    const validLoans = loans.filter(l => l.type === 'Federal' && parseFloat(l.balance) > 0 && parseFloat(l.rate) >= 0);
+    if (!financialProfile.agi || federalLoans.length === 0) return { plans: {}, contaminationWarning: false };
 
-    if (!financialProfile.agi || validLoans.length === 0) {
-      return { plans: {}, contaminationWarning: false };
-    }
-
-    const allPlans = calculatePlans(financialProfile, validLoans);
+    const allPlans = calculatePlans(financialProfile, federalLoans);
     let filteredPlans = {};
-
-    const isGrandfathered = validLoans.some(l => l.originationDate === 'before_2014' || l.originationDate === 'after_2014');
-    const isNewBorrower = validLoans.every(l => l.originationDate === 'after_2026');
+    
+    const isGrandfathered = federalLoans.some(l => l.originationDate === 'before_2014' || l.originationDate === 'after_2014');
+    const isNewBorrower = federalLoans.every(l => l.originationDate === 'after_2026');
     const contaminationTriggered = isGrandfathered && plansToTakeNewLoan === 'yes';
 
     if (isNewBorrower || contaminationTriggered) {
         if(allPlans['RAP']) filteredPlans['RAP'] = allPlans['RAP'];
         if(allPlans['Standardized Tiered Plan']) filteredPlans['Standardized Tiered Plan'] = allPlans['Standardized Tiered Plan'];
-        
-        return {
-            plans: filteredPlans,
-            contaminationWarning: contaminationTriggered,
-        };
+        return { plans: filteredPlans, contaminationWarning: contaminationTriggered };
     }
 
     if (isGrandfathered) {
-        const hasPre2014 = validLoans.some(l => l.originationDate === 'before_2014');
-        const hasOnlyPost2014 = validLoans.every(l => l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
+        const hasPre2014 = federalLoans.some(l => l.originationDate === 'before_2014');
+        const hasOnlyPost2014 = federalLoans.every(l => l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
 
         for (const planName in allPlans) {
             const plan = allPlans[planName];
-            
             if (plan.sunset && new Date() >= plan.sunset) continue;
-            if (planName === 'New IBR' && !hasOnlyPost2014) continue;
-            if (planName === 'Old IBR' && !hasPre2014) continue;
             
-            // PAYE is available to grandfathered borrowers, so we don't need a special rule to hide it here.
+            // Corrected Logic
+            if (planName === 'New IBR' && !hasOnlyPost2014) continue;
+            if (planName === 'Old IBR' && hasOnlyPost2014) continue;
+            if (planName === 'PAYE' && hasPre2014) continue;
             
             filteredPlans[planName] = plan;
         }
-    } else {
-        // Fallback for any other case, though should be covered by isNewBorrower
-        if(allPlans['RAP']) filteredPlans['RAP'] = allPlans['RAP'];
-        if(allPlans['Standardized Tiered Plan']) filteredPlans['Standardized Tiered Plan'] = allPlans['Standardized Tiered Plan'];
     }
-
     return { plans: filteredPlans, contaminationWarning: false };
   }, [agi, familySize, stateOfResidence, filingStatus, loans, plansToTakeNewLoan]);
 
-  // --- JSX to Render the Form ---
+  const privateLoanResults = useMemo(() => {
+    if (privateLoans.length === 0) return null;
+    return calculatePrivateLoanPayoff(privateLoans, parseFloat(extraPayment || 0));
+  }, [privateLoans, extraPayment]);
+
+  const refinanceResults = useMemo(() => {
+    if (!refinanceRate || !refinanceTerm || totalFederalBalance === 0) return null;
+    const monthlyPayment = calculateAmortizedPayment(totalFederalBalance, parseFloat(refinanceRate) / 100, parseFloat(refinanceTerm));
+    const totalPaid = monthlyPayment * parseFloat(refinanceTerm) * 12;
+    return { monthlyPayment, totalPaid, totalInterest: totalPaid - totalFederalBalance };
+  }, [refinanceRate, refinanceTerm, totalFederalBalance]);
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <header className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Student Loan Repayment Analyzer</h1>
-          <p className="text-gray-600">Compare your federal student loan repayment options</p>
-        </header>
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900">The Payoff Climb</h1>
+          <p className="mt-2 text-lg text-gray-600">Your journey to student loan freedom</p>
+        </div>
 
         <Card>
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Your Financial Profile</h2>
@@ -151,7 +131,7 @@ export default function StudentLoanPayoff() {
             <Input label="Adjusted Gross Income (AGI)" id="agi" type="number" placeholder="50000" value={agi} onChange={(e) => setAgi(e.target.value)} />
             <Input label="Family Size" id="familySize" type="number" min="1" value={familySize} onChange={(e) => setFamilySize(e.target.value)} />
             <Select label="State of Residence" id="state" value={stateOfResidence} onChange={(e) => setStateOfResidence(e.target.value)}>
-              <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="DC">District Of Columbia</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
+               <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option><option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="DC">District Of Columbia</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option><option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option><option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option><option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option><option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option><option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option><option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option><option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option><option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
             </Select>
             <Select label="Filing Status" id="filingStatus" value={filingStatus} onChange={(e) => setFilingStatus(e.target.value)}>
               <option value="single">Single</option>
@@ -223,9 +203,13 @@ export default function StudentLoanPayoff() {
           </Card>
         )}
 
-        {Object.keys(eligiblePlans.plans).length > 0 && (
+        {/* --- RESULTS SECTIONS --- */}
+        {federalLoans.length > 0 && Object.keys(eligiblePlans.plans).length > 0 && (
           <Card>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Eligible Repayment Plans</h2>
+            <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-gray-800">Federal Loan Repayment Plans</h2>
+                <p className="text-sm text-gray-600">Based on a total federal balance of ${totalFederalBalance.toLocaleString()}</p>
+            </div>
             {eligiblePlans.contaminationWarning && (
               <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md flex items-center gap-3">
                 <AlertTriangle size={24} />
@@ -237,15 +221,48 @@ export default function StudentLoanPayoff() {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {Object.entries(eligiblePlans.plans).map(([name, plan]) => (
-                <ResultsCard 
-                  key={name}
-                  title={name}
-                  plan={plan}
-                  warning={plan.sunset && `⚠️ This plan ends on ${new Date(plan.sunset).toLocaleDateString()}.`}
-                />
+                <ResultsCard key={name} title={name} plan={plan} warning={plan.sunset && `⚠️ This plan ends on ${new Date(plan.sunset).toLocaleDateString()}.`}/>
               ))}
             </div>
           </Card>
+        )}
+        
+        {privateLoans.length > 0 && (
+          <Card>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Private Loan Payoff Strategy</h2>
+            <p className="text-sm text-gray-600 mb-6">Based on a total private balance of ${totalPrivateBalance.toLocaleString()}</p>
+            <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+                <h3 className="font-semibold text-gray-800 mb-4">Aggressive Payoff Simulator</h3>
+                <Input label="Extra Monthly Payment ($)" id="extraPayment" type="number" placeholder="0" value={extraPayment} onChange={(e) => setExtraPayment(e.target.value)} />
+            </div>
+            {privateLoanResults && (
+                <div className="mt-6">
+                    <ResultsCard title="Private Loan Payoff" plan={privateLoanResults} />
+                </div>
+            )}
+          </Card>
+        )}
+
+        {federalLoans.length > 0 && (
+            <Card>
+                 <h2 className="text-2xl font-semibold text-gray-800 mb-6">Strategic Tools</h2>
+                 <div className="bg-red-50 border border-red-200 p-6 rounded-lg">
+                    <h3 className="text-xl font-semibold text-red-800 mb-4">Refinancing Simulator</h3>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="New Interest Rate (%)" id="refiRate" type="number" placeholder="5.0" value={refinanceRate} onChange={(e) => setRefinanceRate(e.target.value)} />
+                        <Input label="New Term (Years)" id="refiTerm" type="number" placeholder="10" value={refinanceTerm} onChange={(e) => setRefinanceTerm(e.target.value)} />
+                     </div>
+                     {refinanceResults && (
+                         <div className="mt-4">
+                             <ResultsCard title="Refinanced Loan" plan={refinanceResults} />
+                         </div>
+                     )}
+                    <div className="mt-4 bg-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-md">
+                        <h4 className="font-bold">Warning: Irreversible Decision</h4>
+                        <p className="text-sm">Refinancing federal loans into a private loan means you **permanently lose access** to all federal benefits, including income-driven repayment plans and all loan forgiveness programs (like PSLF).</p>
+                    </div>
+                 </div>
+            </Card>
         )}
       </div>
     </div>
