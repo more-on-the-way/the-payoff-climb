@@ -4,45 +4,57 @@ import { calculatePlans } from './loanCalculations';
 
 // --- Reusable UI Components ---
 const Card = ({ children, className = '', ...props }) => (
-  <div className={`bg-white rounded-2xl shadow-lg p-6 sm:p-8 ${className}`} {...props}>
+  <div className={`bg-white rounded-lg shadow-md p-6 ${className}`} {...props}>
     {children}
   </div>
 );
 
 const Input = ({ label, id, ...props }) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <input id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      {label}
+    </label>
+    <input
+      id={id}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      {...props}
+    />
   </div>
 );
 
 const Select = ({ label, id, children, ...props }) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <select id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      {label}
+    </label>
+    <select
+      id={id}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      {...props}
+    >
       {children}
     </select>
   </div>
 );
 
 const ResultsCard = ({ title, plan, warning }) => {
-    const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
-    const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
-    
-    const dateToUse = plan.isIdr ? (plan.forgivenessDate || plan.payoffDate) : plan.payoffDate;
-    const dateLabel = plan.isIdr ? (plan.forgivenessDate ? 'Forgiveness Date:' : 'Payoff Date:') : 'Payoff Date:';
+  const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
+  const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
 
-    return (
-      <div className="bg-gray-50 rounded-lg p-4 border flex flex-col">
-        <h3 className="font-bold text-lg text-indigo-700">{title}</h3>
-        {warning && <p className="text-xs text-yellow-700 my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
-        <div className="mt-2 space-y-1 text-sm flex-grow">
-          <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
-          <p><span className="font-semibold">Total Paid:</span> {formatCurrency(plan.totalPaid)}</p>
-          <p><span className="font-semibold">{dateLabel}</span> {formatDate(dateToUse)}</p>
-        </div>
+  const dateToUse = plan.isIdr ? (plan.forgivenessDate || plan.payoffDate) : plan.payoffDate;
+  const dateLabel = plan.isIdr ? (plan.forgivenessDate ? 'Forgiveness Date:' : 'Payoff Date:') : 'Payoff Date:';
+
+  return (
+    <div className="bg-gray-50 rounded-lg p-4 border flex flex-col">
+      <h3 className="font-bold text-lg text-indigo-700">{title}</h3>
+      {warning && <p className="text-xs text-yellow-700 my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
+      <div className="mt-2 space-y-1 text-sm flex-grow">
+        <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
+        <p><span className="font-semibold">Total Paid:</span> {formatCurrency(plan.totalPaid)}</p>
+        <p><span className="font-semibold">{dateLabel}</span> {formatDate(dateToUse)}</p>
       </div>
-    );
+    </div>
+  );
 };
 
 // --- Main Application Component ---
@@ -85,7 +97,7 @@ export default function StudentLoanPayoff() {
 
     const allPlans = calculatePlans(financialProfile, validLoans);
     let filteredPlans = {};
-    
+
     const isGrandfathered = validLoans.some(l => l.originationDate === 'before_2014' || l.originationDate === 'after_2014');
     const isNewBorrower = validLoans.every(l => l.originationDate === 'after_2026');
     const contaminationTriggered = isGrandfathered && plansToTakeNewLoan === 'yes';
@@ -110,34 +122,29 @@ export default function StudentLoanPayoff() {
             if (plan.sunset && new Date() >= plan.sunset) continue;
             if (planName === 'New IBR' && !hasOnlyPost2014) continue;
             if (planName === 'Old IBR' && !hasPre2014) continue;
-        
-
-            // Hide new plans from grandfathered unless they are comparing
-            if ((planName === 'Standardized Tiered Plan' || planName === 'RAP') && !isNewBorrower) {
-                 // allow them to be shown for comparison
-            } else if (planName === 'Standardized Tiered Plan' || planName === 'RAP') {
-                continue
-            }
+            
+            // PAYE is available to grandfathered borrowers, so we don't need a special rule to hide it here.
             
             filteredPlans[planName] = plan;
         }
+    } else {
+        // Fallback for any other case, though should be covered by isNewBorrower
+        if(allPlans['RAP']) filteredPlans['RAP'] = allPlans['RAP'];
+        if(allPlans['Standardized Tiered Plan']) filteredPlans['Standardized Tiered Plan'] = allPlans['Standardized Tiered Plan'];
     }
 
     return { plans: filteredPlans, contaminationWarning: false };
   }, [agi, familySize, stateOfResidence, filingStatus, loans, plansToTakeNewLoan]);
 
-
   // --- JSX to Render the Form ---
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900">The Payoff Climb</h1>
-          <p className="mt-2 text-lg text-gray-600">Your journey to student loan freedom</p>
-        </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <header className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Student Loan Repayment Analyzer</h1>
+          <p className="text-gray-600">Compare your federal student loan repayment options</p>
+        </header>
 
-        {/* Financial Profile Card */}
         <Card>
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Your Financial Profile</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -154,7 +161,6 @@ export default function StudentLoanPayoff() {
           </div>
         </Card>
 
-        {/* Loans Card */}
         <Card>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold text-gray-800">Your Loans</h2>
@@ -205,7 +211,6 @@ export default function StudentLoanPayoff() {
           </div>
         </Card>
 
-        {/* Contamination Clause Card */}
         {showContaminationQuestion && (
           <Card className="bg-yellow-50 border border-yellow-200">
             <h3 className="font-semibold text-gray-800 mb-2">Future Federal Loans</h3>
@@ -218,7 +223,6 @@ export default function StudentLoanPayoff() {
           </Card>
         )}
 
-        {/* Results Section */}
         {Object.keys(eligiblePlans.plans).length > 0 && (
           <Card>
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Eligible Repayment Plans</h2>
@@ -237,7 +241,7 @@ export default function StudentLoanPayoff() {
                   key={name}
                   title={name}
                   plan={plan}
-                  warning={plan.sunset && `⚠️ This plan ends on ${plan.sunset.toLocaleDateString()}.`}
+                  warning={plan.sunset && `⚠️ This plan ends on ${new Date(plan.sunset).toLocaleDateString()}.`}
                 />
               ))}
             </div>
