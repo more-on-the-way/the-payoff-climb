@@ -28,7 +28,7 @@ const Select = ({ label, id, children, ...props }) => (
 const ResultsCard = ({ title, plan, warning }) => {
     const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
     const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
-    
+
     const dateToUse = plan.isIdr ? (plan.forgivenessDate || plan.payoffDate) : plan.payoffDate;
     const dateLabel = plan.isIdr ? (plan.forgivenessDate ? 'Forgiveness Date:' : 'Payoff Date:') : 'Payoff Date:';
 
@@ -57,7 +57,7 @@ export default function StudentLoanPayoff() {
   const [refinanceRate, setRefinanceRate] = useState('');
   const [refinanceTerm, setRefinanceTerm] = useState('');
   const [extraPayment, setExtraPayment] = useState('');
-  
+
   const addLoan = () => setLoans([...loans, { id: Date.now(), type: null, balance: '', rate: '', originationDate: '', term: '' }]);
   const removeLoan = (id) => setLoans(loans.filter(loan => loan.id !== id));
   const updateLoan = (id, field, value) => setLoans(loans.map(loan => (loan.id === id ? { ...loan, [field]: value } : loan)));
@@ -94,11 +94,13 @@ export default function StudentLoanPayoff() {
             const plan = allPlans[planName];
             if (plan.sunset && new Date() >= plan.sunset) continue;
             
-            // Corrected Logic
+            // Corrected Logic to show correct IBR plan
             if (planName === 'New IBR' && !hasOnlyPost2014) continue;
             if (planName === 'Old IBR' && hasOnlyPost2014) continue;
+
+            // Corrected Logic for PAYE
             if (planName === 'PAYE' && hasPre2014) continue;
-            
+
             filteredPlans[planName] = plan;
         }
     }
