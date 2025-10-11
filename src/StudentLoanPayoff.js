@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { PlusCircle, XCircle, AlertTriangle } from 'lucide-react';
-import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment } from './loanCalculations';
+import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment, calculateAcceleratedPayoff, calculateTargetYearPayment } from './loanCalculations';
 
 // --- Reusable UI Components ---
 const Card = ({ children, className = '', ...props }) => (
