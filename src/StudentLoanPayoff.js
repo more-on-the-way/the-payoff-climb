@@ -155,8 +155,13 @@ export default function StudentLoanPayoff() {
   // Private Loan Calculation
   const privateLoanResults = useMemo(() => {
     if (privateLoans.length === 0) return null;
-    return calculatePrivateLoanPayoff(privateLoans, parseFloat(extraPayment || 0));
-  }, [privateLoans, extraPayment]);
+    return calculatePrivateLoanPayoff(
+      privateLoans,
+      privateCalcMode,
+      parseFloat(extraPayment || 0),
+      parseInt(privateTargetYear || 0)
+    );
+  }, [privateLoans, privateCalcMode, extraPayment, privateTargetYear]);
 
   // Refinancing Calculation
   const refinanceResults = useMemo(() => {
@@ -217,7 +222,7 @@ export default function StudentLoanPayoff() {
     return null;
   }, [refinanceResults, eligiblePlans.plans, refinanceComparisonMode, customPlanSelection]);
 
-// Get ALL available federal plans for acceleration (Phase 3)
+  // Get ALL available federal plans for acceleration (Phase 3)
   const allFederalPlans = useMemo(() => {
     if (Object.keys(eligiblePlans.plans).length === 0) return [];
     return Object.keys(eligiblePlans.plans);
@@ -521,7 +526,7 @@ export default function StudentLoanPayoff() {
               <option value="no">No</option>
               <option value="yes">Yes</option>
             </Select>
-          </Card>
+          </aside>
         )}
 
         {/* Federal Loan Repayment Plans */}
@@ -828,7 +833,7 @@ export default function StudentLoanPayoff() {
                 </div>
               )}
             </div>
-          </Card>
+          </aside>
         )}
 
         {/* Strategic Tools - Refinancing */}
