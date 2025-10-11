@@ -526,7 +526,7 @@ export default function StudentLoanPayoff() {
               <option value="no">No</option>
               <option value="yes">Yes</option>
             </Select>
-          </aside>
+          </Card>
         )}
 
         {/* Federal Loan Repayment Plans */}
