@@ -64,8 +64,16 @@ export default function StudentLoanPayoff() {
   const [refinanceComparisonMode, setRefinanceComparisonMode] = useState('lowestPayment');
   const [customPlanSelection, setCustomPlanSelection] = useState('');
   
-  // Extra Payment State
+  // Federal Acceleration State (Phase 3)
+  const [federalExtraPayment, setFederalExtraPayment] = useState('');
+  const [federalTargetYear, setFederalTargetYear] = useState('');
+  const [federalCalcMode, setFederalCalcMode] = useState('extra'); // 'extra' or 'target'
+  const [selectedAccelerationPlan, setSelectedAccelerationPlan] = useState('');
+  
+  // Private Acceleration State (Phase 3)
   const [extraPayment, setExtraPayment] = useState('');
+  const [privateCalcMode, setPrivateCalcMode] = useState('extra'); // 'extra' or 'target'
+  const [privateTargetYear, setPrivateTargetYear] = useState('');
 
   // Loan Management Functions
   const addLoan = () => setLoans([...loans, { 
@@ -471,29 +479,277 @@ export default function StudentLoanPayoff() {
           </Card>
         )}
         
-        {/* Private Loan Payoff Strategy */}
+        {/* Federal Loan Acceleration Strategy - Phase 3 */}
+        {federalLoans.length > 0 && allFederalPlans.length > 0 && (
+          <Card>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+              Federal Loan Acceleration Strategy
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              See how extra payments or a target payoff year can help you become debt-free faster.
+            </p>
+            
+            <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+              {/* Mode Toggle */}
+              <div className="mb-6 bg-white p-4 rounded-lg border border-green-300">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Calculate based on:</p>
+                <div className="space-y-2">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="federalCalcMode"
+                      value="extra"
+                      checked={federalCalcMode === 'extra'}
+                      onChange={(e) => setFederalCalcMode(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Extra Payment Amount</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="federalCalcMode"
+                      value="target"
+                      checked={federalCalcMode === 'target'}
+                      onChange={(e) => setFederalCalcMode(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Target Payoff Year</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Plan Selector and Input Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <Select
+                  label="Apply to this plan:"
+                  id="accelerationPlan"
+                  value={selectedAccelerationPlan}
+                  onChange={(e) => setSelectedAccelerationPlan(e.target.value)}
+                >
+                  <option value="">Select a plan</option>
+                  {allFederalPlans.map(planName => (
+                    <option key={planName} value={planName}>{planName}</option>
+                  ))}
+                </Select>
+                
+                {federalCalcMode === 'extra' ? (
+                  <Input
+                    label="Extra Monthly Payment ($)"
+                    id="federalExtra"
+                    type="number"
+                    placeholder="200"
+                    value={federalExtraPayment}
+                    onChange={(e) => setFederalExtraPayment(e.target.value)}
+                  />
+                ) : (
+                  <Input
+                    label="Target Payoff Year"
+                    id="federalTargetYear"
+                    type="number"
+                    placeholder="2030"
+                    value={federalTargetYear}
+                    onChange={(e) => setFederalTargetYear(e.target.value)}
+                  />
+                )}
+              </div>
+
+              {/* Error Display */}
+              {federalAcceleratedResults?.error && (
+                <div className={`p-4 rounded-lg mb-6 ${
+                  federalAcceleratedResults.alreadyMeetsTarget 
+                    ? 'bg-yellow-100 border border-yellow-300 text-yellow-800' 
+                    : 'bg-red-100 border border-red-300 text-red-800'
+                }`}>
+                  <p className="text-sm font-semibold">{federalAcceleratedResults.error}</p>
+                </div>
+              )}
+
+              {/* Comparison Display */}
+              {federalAcceleratedResults && !federalAcceleratedResults.error && (
+                <div>
+                  {/* Side-by-side comparison cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Baseline Card */}
+                    <div className="bg-gray-100 rounded-lg p-4 border border-gray-300">
+                      <h3 className="font-bold text-lg text-gray-700 mb-3">Current Plan</h3>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-semibold">Monthly Payment:</span> ${typeof federalAcceleratedResults.baseline.monthlyPayment === 'number' ? federalAcceleratedResults.baseline.monthlyPayment.toFixed(2) : federalAcceleratedResults.baseline.monthlyPayment}</p>
+                        <p><span className="font-semibold">Total Paid:</span> ${federalAcceleratedResults.baseline.totalPaid.toFixed(2)}</p>
+                        <p><span className="font-semibold">{federalAcceleratedResults.baseline.isForgivenessDate ? 'Forgiveness Date:' : 'Payoff Date:'}</span> {federalAcceleratedResults.baseline.payoffDate.toLocaleDateString()}</p>
+                        <p><span className="font-semibold">Total Interest:</span> ${federalAcceleratedResults.baseline.totalInterest.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Accelerated Card */}
+                    <div className="bg-white rounded-lg p-4 border-2 border-green-400">
+                      <h3 className="font-bold text-lg text-green-700 mb-3">
+                        {federalCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-semibold">Monthly Payment:</span> ${federalAcceleratedResults.accelerated.monthlyPayment.toFixed(2)}</p>
+                        <p><span className="font-semibold">Total Paid:</span> ${federalAcceleratedResults.accelerated.totalPaid.toFixed(2)}</p>
+                        <p><span className="font-semibold">Payoff Date:</span> {federalAcceleratedResults.accelerated.payoffDate.toLocaleDateString()}</p>
+                        <p><span className="font-semibold">Total Interest:</span> ${federalAcceleratedResults.accelerated.totalInterest.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Savings Summary */}
+                  <div className="bg-green-100 rounded-lg p-4 border border-green-300 mb-4">
+                    <h4 className="font-bold text-green-800 mb-2">
+                      {federalCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      {federalCalcMode === 'target' && federalAcceleratedResults.requiredExtraPayment && (
+                        <p><span className="font-semibold">Required Extra Payment:</span> <span className="text-green-700 font-bold">${federalAcceleratedResults.requiredExtraPayment.toFixed(2)}/month</span></p>
+                      )}
+                      <p><span className="font-semibold">Interest Saved:</span> <span className="text-green-700 font-bold">${federalAcceleratedResults.savings.interestSaved.toFixed(2)}</span></p>
+                      <p><span className="font-semibold">Time Saved:</span> <span className="text-green-700 font-bold">
+                        {federalAcceleratedResults.savings.yearsSaved} {federalAcceleratedResults.savings.yearsSaved === 1 ? 'year' : 'years'}
+                        {federalAcceleratedResults.savings.remainingMonths > 0 && `, ${federalAcceleratedResults.savings.remainingMonths} ${federalAcceleratedResults.savings.remainingMonths === 1 ? 'month' : 'months'}`}
+                      </span></p>
+                    </div>
+                  </div>
+
+                  {/* Special Note for IDR Plans */}
+                  {federalAcceleratedResults.accelerated.paidOffBeforeForgiveness && (
+                    <div className="bg-blue-100 rounded-lg p-4 border border-blue-300">
+                      <p className="text-sm text-blue-800">
+                        <span className="font-semibold">Note:</span> You'll pay off your loans before reaching forgiveness eligibility. Your extra payments will save you money and time.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+        
+        {/* Private Loan Payoff Strategy - Phase 3 Enhanced */}
         {privateLoans.length > 0 && (
           <Card>
             <h2 className="text-2xl font-semibold text-gray-800 mb-2">Private Loan Payoff Strategy</h2>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-gray-600 mb-2">
               Based on a total private balance of ${totalPrivateBalance.toLocaleString()}
             </p>
+            <p className="text-sm text-gray-500 mb-6">
+              Strategy: Debt Avalanche (paying highest interest rate first)
+            </p>
+            
             <div className="bg-green-50 p-6 rounded-xl border border-green-200">
-              <h3 className="font-semibold text-gray-800 mb-4">Aggressive Payoff Simulator</h3>
-              <Input 
-                label="Extra Monthly Payment ($)" 
-                id="extraPayment" 
-                type="number" 
-                placeholder="0" 
-                value={extraPayment} 
-                onChange={(e) => setExtraPayment(e.target.value)} 
-              />
-            </div>
-            {privateLoanResults && (
-              <div className="mt-6">
-                <ResultsCard title="Private Loan Payoff" plan={privateLoanResults} />
+              {/* Mode Toggle */}
+              <div className="mb-6 bg-white p-4 rounded-lg border border-green-300">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Calculate based on:</p>
+                <div className="space-y-2">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="privateCalcMode"
+                      value="extra"
+                      checked={privateCalcMode === 'extra'}
+                      onChange={(e) => setPrivateCalcMode(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Extra Payment Amount</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="privateCalcMode"
+                      value="target"
+                      checked={privateCalcMode === 'target'}
+                      onChange={(e) => setPrivateCalcMode(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Target Payoff Year</span>
+                  </label>
+                </div>
               </div>
-            )}
+
+              {/* Input Field - Conditional based on mode */}
+              {privateCalcMode === 'extra' ? (
+                <Input 
+                  label="Extra Monthly Payment ($)" 
+                  id="extraPayment" 
+                  type="number" 
+                  placeholder="200" 
+                  value={extraPayment} 
+                  onChange={(e) => setExtraPayment(e.target.value)} 
+                />
+              ) : (
+                <Input 
+                  label="Target Payoff Year" 
+                  id="privateTargetYear" 
+                  type="number" 
+                  placeholder="2030" 
+                  value={privateTargetYear} 
+                  onChange={(e) => setPrivateTargetYear(e.target.value)} 
+                />
+              )}
+
+              {/* Error Display */}
+              {privateLoanResults?.error && (
+                <div className={`mt-4 p-4 rounded-lg ${
+                  privateLoanResults.alreadyMeetsTarget 
+                    ? 'bg-yellow-100 border border-yellow-300 text-yellow-800' 
+                    : 'bg-red-100 border border-red-300 text-red-800'
+                }`}>
+                  <p className="text-sm font-semibold">{privateLoanResults.error}</p>
+                </div>
+              )}
+
+              {/* Comparison Display */}
+              {privateLoanResults && !privateLoanResults.error && (
+                <div className="mt-6">
+                  {/* Side-by-side comparison cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Baseline Card */}
+                    <div className="bg-gray-100 rounded-lg p-4 border border-gray-300">
+                      <h3 className="font-bold text-lg text-gray-700 mb-3">Minimum Payments Only</h3>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-semibold">Monthly Payment:</span> ${privateLoanResults.baseline.monthlyPayment.toFixed(2)}</p>
+                        <p><span className="font-semibold">Total Paid:</span> ${privateLoanResults.baseline.totalPaid.toFixed(2)}</p>
+                        <p><span className="font-semibold">Payoff Date:</span> {privateLoanResults.baseline.payoffDate.toLocaleDateString()}</p>
+                        <p><span className="font-semibold">Total Interest:</span> ${privateLoanResults.baseline.totalInterest.toFixed(2)}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Accelerated Card */}
+                    <div className="bg-white rounded-lg p-4 border-2 border-green-400">
+                      <h3 className="font-bold text-lg text-green-700 mb-3">
+                        {privateCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-semibold">Monthly Payment:</span> ${privateLoanResults.accelerated.monthlyPayment.toFixed(2)}</p>
+                        <p><span className="font-semibold">Total Paid:</span> ${privateLoanResults.accelerated.totalPaid.toFixed(2)}</p>
+                        <p><span className="font-semibold">Payoff Date:</span> {privateLoanResults.accelerated.payoffDate.toLocaleDateString()}</p>
+                        <p><span className="font-semibold">Total Interest:</span> ${privateLoanResults.accelerated.totalInterest.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Savings Summary */}
+                  {(parseFloat(extraPayment || 0) > 0 || privateCalcMode === 'target') && (
+                    <div className="bg-green-100 rounded-lg p-4 border border-green-300">
+                      <h4 className="font-bold text-green-800 mb-2">
+                        {privateCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        {privateCalcMode === 'target' && privateLoanResults.requiredExtraPayment && (
+                          <p><span className="font-semibold">Required Extra Payment:</span> <span className="text-green-700 font-bold">${privateLoanResults.requiredExtraPayment.toFixed(2)}/month</span></p>
+                        )}
+                        <p><span className="font-semibold">Interest Saved:</span> <span className="text-green-700 font-bold">${privateLoanResults.savings.interestSaved.toFixed(2)}</span></p>
+                        <p><span className="font-semibold">Time Saved:</span> <span className="text-green-700 font-bold">
+                          {privateLoanResults.savings.yearsSaved} {privateLoanResults.savings.yearsSaved === 1 ? 'year' : 'years'}
+                          {privateLoanResults.savings.remainingMonths > 0 && `, ${privateLoanResults.savings.remainingMonths} ${privateLoanResults.savings.remainingMonths === 1 ? 'month' : 'months'}`}
+                        </span></p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </Card>
         )}
 
