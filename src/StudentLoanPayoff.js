@@ -46,6 +46,116 @@ const ResultsCard = ({ title, plan, warning }) => {
   );
 };
 
+const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalance, calcMode }) => {
+  // Calculate breakdowns
+  const baselinePrincipal = totalOriginalBalance;
+  const baselineInterest = baseline.totalInterest;
+  const baselineTotal = baseline.totalPaid;
+  
+  const acceleratedPrincipal = totalOriginalBalance;
+  const acceleratedInterest = accelerated.totalInterest;
+  const acceleratedTotal = accelerated.totalPaid;
+  
+  // Calculate percentages for visual bars
+  const baselinePrincipalPct = (baselinePrincipal / baselineTotal) * 100;
+  const baselineInterestPct = (baselineInterest / baselineTotal) * 100;
+  
+  const acceleratedPrincipalPct = (acceleratedPrincipal / acceleratedTotal) * 100;
+  const acceleratedInterestPct = (acceleratedInterest / acceleratedTotal) * 100;
+  
+  const acceleratedLabel = calcMode === 'target' ? 'To Meet Target' : 'With Extra Payment';
+  
+  return (
+    <div className="mt-6 bg-white rounded-lg p-5 border-2 border-indigo-200">
+      <h4 className="font-bold text-indigo-900 mb-4 text-center">Payment Breakdown: Where Your Money Goes</h4>
+      
+      {/* Legend */}
+      <div className="flex justify-center gap-6 mb-6 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-green-500 rounded"></div>
+          <span>Principal (Your Debt)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-red-500 rounded"></div>
+          <span>Interest (Bank Profit)</span>
+        </div>
+      </div>
+      
+      {/* Visualizations */}
+      <div className="space-y-6">
+        {/* Baseline Bar */}
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <h5 className="font-semibold text-gray-700 text-sm">Minimum Payments Only</h5>
+            <span className="text-xs text-gray-600">Total: ${baselineTotal.toFixed(2)}</span>
+          </div>
+          <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md">
+            <div 
+              className="bg-green-500 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              style={{ width: `${baselinePrincipalPct}%` }}
+            >
+              {baselinePrincipalPct > 15 && (
+                <span>${baselinePrincipal.toFixed(0)} ({baselinePrincipalPct.toFixed(1)}%)</span>
+              )}
+            </div>
+            <div 
+              className="bg-red-500 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              style={{ width: `${baselineInterestPct}%` }}
+            >
+              {baselineInterestPct > 15 && (
+                <span>${baselineInterest.toFixed(0)} ({baselineInterestPct.toFixed(1)}%)</span>
+              )}
+            </div>
+          </div>
+          {/* Mobile-friendly labels */}
+          <div className="flex justify-between mt-1 text-xs text-gray-600 md:hidden">
+            <span>Principal: ${baselinePrincipal.toFixed(0)}</span>
+            <span>Interest: ${baselineInterest.toFixed(0)}</span>
+          </div>
+        </div>
+        
+        {/* Accelerated Bar */}
+        <div>
+          <div className="flex justify-between items-center mb-2">
+            <h5 className="font-semibold text-green-700 text-sm">{acceleratedLabel}</h5>
+            <span className="text-xs text-gray-600">Total: ${acceleratedTotal.toFixed(2)}</span>
+          </div>
+          <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md border-2 border-green-400">
+            <div 
+              className="bg-green-600 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              style={{ width: `${acceleratedPrincipalPct}%` }}
+            >
+              {acceleratedPrincipalPct > 15 && (
+                <span>${acceleratedPrincipal.toFixed(0)} ({acceleratedPrincipalPct.toFixed(1)}%)</span>
+              )}
+            </div>
+            <div 
+              className="bg-red-600 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              style={{ width: `${acceleratedInterestPct}%` }}
+            >
+              {acceleratedInterestPct > 15 && (
+                <span>${acceleratedInterest.toFixed(0)} ({acceleratedInterestPct.toFixed(1)}%)</span>
+              )}
+            </div>
+          </div>
+          {/* Mobile-friendly labels */}
+          <div className="flex justify-between mt-1 text-xs text-gray-600 md:hidden">
+            <span>Principal: ${acceleratedPrincipal.toFixed(0)}</span>
+            <span>Interest: ${acceleratedInterest.toFixed(0)}</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Insight Message */}
+      <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
+        <p className="text-sm text-green-800">
+          <span className="font-semibold">💡 Key Insight:</span> By accelerating payments, you reduce the total interest paid to the bank while paying off the same principal amount. Every extra dollar goes directly toward eliminating your debt faster.
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Application Component ---
 export default function StudentLoanPayoff() {
   // Financial Profile State
@@ -831,6 +941,17 @@ export default function StudentLoanPayoff() {
                           {privateLoanResults.savings.remainingMonths > 0 && `, ${privateLoanResults.savings.remainingMonths} ${privateLoanResults.savings.remainingMonths === 1 ? 'month' : 'months'}`}
                         </span></p>
                       </div>
+                      
+                      {/* --- PAYMENT VISUALIZER INTEGRATION --- */}
+                      {privateLoanResults && !privateLoanResults.error &&
+                        (parseFloat(extraPayment || 0) > 0 || privateCalcMode === 'target') && (
+                          <PaymentBreakdownVisualizer
+                            baseline={privateLoanResults.baseline}
+                            accelerated={privateLoanResults.accelerated}
+                            totalOriginalBalance={totalPrivateBalance}
+                            calcMode={privateCalcMode}
+                          />
+                      )}
                     </div>
                   )}
                 </div>
