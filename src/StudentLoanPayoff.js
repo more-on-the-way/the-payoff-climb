@@ -833,7 +833,7 @@ export default function StudentLoanPayoff() {
                 </div>
               )}
             </div>
-          </aside>
+          <Card>
         )}
 
         {/* Strategic Tools - Refinancing */}
