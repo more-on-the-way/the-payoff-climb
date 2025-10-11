@@ -836,7 +836,7 @@ export default function StudentLoanPayoff() {
           <Card>
         )}
 
-        {/* Strategic Tools - Refinancing */}
+       {/* Strategic Tools - Refinancing */}
         {federalLoans.length > 0 && (
           <Card>
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Strategic Tools</h2>
@@ -978,7 +978,7 @@ export default function StudentLoanPayoff() {
             </div>
           </Card>
         )}
-      <Card>
+      </div>
     </div>
   );
 }
