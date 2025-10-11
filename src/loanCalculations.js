@@ -212,6 +212,72 @@ function simulateRAP({
   };
 }
 
+/**
+ * Simulates an accelerated payoff for a federal loan plan
+ * Features:
+ * - Takes a baseline plan and an extra monthly payment
+ * - Recalculates payoff date and total cost
+ * - Determines if the loan is paid off before forgiveness
+ */
+export const calculateAcceleratedPayoff = (principal, annualRate, baselinePlan, extraPayment, isIdrPlan) => {
+  if (extraPayment <= 0) {
+    return {
+      monthlyPayment: baselinePlan.monthlyPayment,
+      totalPaid: baselinePlan.totalPaid,
+      payoffDate: baselinePlan.forgivenessDate || baselinePlan.payoffDate,
+      totalInterest: baselinePlan.totalPaid - principal
+    };
+  }
+
+  let balance = principal;
+  const monthlyRate = annualRate / 12;
+  const basePayment = typeof baselinePlan.monthlyPayment === 'number' ? baselinePlan.monthlyPayment : 0;
+  const totalMonthlyPayment = basePayment + extraPayment;
+  
+  let totalPaid = 0;
+  let month = 0;
+  const maxMonths = 600; // Safety break at 50 years
+
+  while (balance > 0 && month < maxMonths) {
+    month++;
+    
+    // Add interest for the month
+    const interest = balance * monthlyRate;
+    balance += interest;
+    
+    // Make the accelerated payment
+    const payment = Math.min(totalMonthlyPayment, balance);
+    balance -= payment;
+    totalPaid += payment;
+  }
+
+  const payoffDate = new Date();
+  payoffDate.setMonth(payoffDate.getMonth() + month);
+
+  // Compare payoff date with original forgiveness date
+  const paidOffBeforeForgiveness = isIdrPlan && baselinePlan.forgivenessDate && payoffDate < baselinePlan.forgivenessDate;
+
+  return {
+    baseline: {
+      monthlyPayment: basePayment,
+      totalPaid: baselinePlan.totalPaid,
+      payoffDate: baselinePlan.forgivenessDate || baselinePlan.payoffDate,
+      totalInterest: baselinePlan.totalPaid - principal,
+      isForgivenessDate: !!baselinePlan.forgivenessDate
+    },
+    accelerated: {
+      monthlyPayment: totalMonthlyPayment,
+      totalPaid: totalPaid,
+      payoffDate: payoffDate,
+      totalInterest: totalPaid - principal,
+    },
+    savings: {
+      interestSaved: (baselinePlan.totalPaid - principal) - (totalPaid - principal),
+    },
+    paidOffBeforeForgiveness: paidOffBeforeForgiveness
+  };
+};
+
 // --- MAIN FEDERAL LOAN CALCULATION FUNCTION ---
 
 /**
