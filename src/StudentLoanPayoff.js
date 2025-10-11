@@ -411,14 +411,14 @@ export default function StudentLoanPayoff() {
         {/* Loan Input */}
         <Card>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold text-gray-800">Your Loans</h2>
-            <button 
-              onClick={addLoan} 
-              className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-brand-blue-dark transition"
-            >
-              <PlusCircle size={20} /> Add Loan
-            </button>
-          </div>
+  <h2 className="text-2xl font-semibold text-gray-800">Your Loans</h2>
+  <button 
+    onClick={addLoan} 
+    className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-brand-blue-dark transition"
+  >
+    <PlusCircle size={20} /> Add Loan
+  </button>
+</div>
           <div className="space-y-6">
             {loans.length === 0 && (
               <p className="text-gray-500 text-center py-4">Add a loan to get started.</p>
