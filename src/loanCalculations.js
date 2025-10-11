@@ -458,90 +458,113 @@ export const calculatePlans = (financialProfile, loans) => {
 // --- PRIVATE LOAN CALCULATIONS ---
 
 /**
- * Calculates private loan payoff using the Debt Avalanche method
- * Features:
- * - Pays minimum on all loans
- * - Applies extra payment to highest interest rate loan first
- * - Tracks month-by-month until all loans are paid off
- * - Returns total payment info and payoff date
+ * Calculates private loan payoff using Debt Avalanche, enhanced for both Extra Payment and Target Year modes.
  */
-export const calculatePrivateLoanPayoff = (privateLoans, extraPayment = 0) => {
+export const calculatePrivateLoanPayoff = (privateLoans, calcMode, extraPayment = 0, targetYear) => {
   if (!privateLoans || privateLoans.length === 0) return null;
 
-  // Calculate minimum payment for each loan and prepare tracking
+  // --- Shared Setup and Baseline Calculation ---
+  let totalOriginalBalance = 0;
   const loansWithPayments = privateLoans.map(loan => {
     const balance = parseFloat(loan.balance);
     const annualRate = parseFloat(loan.rate) / 100;
     const termYears = parseFloat(loan.term);
+    totalOriginalBalance += balance;
     const minPayment = calculateAmortizedPayment(balance, annualRate, termYears);
-    
     return {
+      id: loan.id,
       balance,
       annualRate,
       monthlyRate: annualRate / 12,
-      minPayment,
-      currentBalance: balance
+      minPayment
     };
   });
-
-  // Sort by interest rate (highest first) for Debt Avalanche strategy
-  const sortedLoans = [...loansWithPayments].sort((a, b) => b.annualRate - a.annualRate);
-  
-  // Calculate total payments
   const totalMinPayment = loansWithPayments.reduce((sum, loan) => sum + loan.minPayment, 0);
-  const totalMonthlyPayment = totalMinPayment + extraPayment;
-  
-  // Simulate month-by-month payoff
-  let month = 0;
-  let totalPaid = 0;
-  const maxMonths = 600; // Safety limit: 50 years
-  
-  while (month < maxMonths) {
-    month++;
+
+  // Helper function to run the simulation
+  const runSimulation = (monthlyPayment) => {
+    const loans = loansWithPayments.map(l => ({ ...l, currentBalance: l.balance }));
+    const sortedLoans = [...loans].sort((a, b) => b.annualRate - a.annualRate);
     
-    // Check if all loans are paid off
-    const remainingLoans = sortedLoans.filter(loan => loan.currentBalance > 0);
-    if (remainingLoans.length === 0) break;
+    let month = 0;
+    let totalPaid = 0;
+    const maxMonths = 600; // 50 year safety limit
     
-    // Step 1: Apply interest to all remaining loans
-    remainingLoans.forEach(loan => {
-      loan.currentBalance += loan.currentBalance * loan.monthlyRate;
-    });
-    
-    // Step 2: Make minimum payments on all loans
-    let paymentRemaining = totalMonthlyPayment;
-    
-    for (const loan of sortedLoans) {
-      if (loan.currentBalance <= 0) continue;
+    while (month < maxMonths) {
+      month++;
+      const remainingLoans = sortedLoans.filter(l => l.currentBalance > 0);
+      if (remainingLoans.length === 0) break;
       
-      // Pay minimum (or remaining balance if less than minimum)
-      const minPaymentAmount = Math.min(loan.minPayment, loan.currentBalance);
-      loan.currentBalance -= minPaymentAmount;
-      paymentRemaining -= minPaymentAmount;
-      totalPaid += minPaymentAmount;
-    }
-    
-    // Step 3: Apply extra payment to highest interest loan (Debt Avalanche)
-    if (paymentRemaining > 0) {
-      const targetLoan = sortedLoans.find(loan => loan.currentBalance > 0);
-      if (targetLoan) {
-        const extraPaymentAmount = Math.min(paymentRemaining, targetLoan.currentBalance);
-        targetLoan.currentBalance -= extraPaymentAmount;
-        totalPaid += extraPaymentAmount;
+      remainingLoans.forEach(l => { l.currentBalance += l.currentBalance * l.monthlyRate; });
+      
+      let paymentRemaining = monthlyPayment;
+      sortedLoans.forEach(l => {
+        if (l.currentBalance <= 0) return;
+        const minPay = Math.min(l.minPayment, l.currentBalance);
+        l.currentBalance -= minPay;
+        paymentRemaining -= minPay;
+        totalPaid += minPay;
+      });
+      
+      if (paymentRemaining > 0) {
+        for (const loan of sortedLoans) {
+          if (paymentRemaining <= 0) break;
+          if (loan.currentBalance > 0) {
+            const extraPay = Math.min(paymentRemaining, loan.currentBalance);
+            loan.currentBalance -= extraPay;
+            paymentRemaining -= extraPay;
+            totalPaid += extraPay;
+          }
+        }
       }
     }
+    
+    const payoffDate = new Date();
+    payoffDate.setMonth(payoffDate.getMonth() + month - 1);
+    const totalInterest = totalPaid - totalOriginalBalance;
+    
+    return { monthlyPayment, totalPaid, totalInterest, payoffDate };
+  };
+
+  // Calculate baseline results (minimum payments only)
+  const baseline = runSimulation(totalMinPayment);
+  
+  // --- Mode-Specific Calculations ---
+  let finalResult;
+  let requiredExtraPayment = null;
+
+  if (calcMode === 'target') {
+    const currentYear = new Date().getFullYear();
+    const termYears = targetYear - currentYear;
+    if (!targetYear || termYears <= 0) return { error: "Target year must be in the future." };
+    
+    const weightedAvgRate = loansWithPayments.reduce((acc, loan) => acc + (loan.balance * loan.annualRate), 0) / totalOriginalBalance;
+    const requiredTotalPayment = calculateAmortizedPayment(totalOriginalBalance, weightedAvgRate, termYears);
+    
+    if (totalMinPayment >= requiredTotalPayment) {
+      return { error: "Your minimum payments already meet this target.", alreadyMeetsTarget: true };
+    }
+    
+    requiredExtraPayment = requiredTotalPayment - totalMinPayment;
+    finalResult = runSimulation(requiredTotalPayment);
+
+  } else { // Default to 'extra' payment mode
+    const totalPayment = totalMinPayment + parseFloat(extraPayment || 0);
+    finalResult = runSimulation(totalPayment);
   }
-  
-  // Calculate final results
-  const totalOriginalBalance = loansWithPayments.reduce((sum, loan) => sum + loan.balance, 0);
-  const totalInterest = totalPaid - totalOriginalBalance;
-  const payoffDate = new Date();
-  payoffDate.setMonth(payoffDate.getMonth() + month);
-  
+
+  // --- Final Output ---
+  const savings = {
+    interestSaved: baseline.totalInterest - finalResult.totalInterest,
+    monthsSaved: Math.round((baseline.payoffDate - finalResult.payoffDate) / (1000 * 60 * 60 * 24 * 30.44))
+  };
+  savings.yearsSaved = Math.floor(savings.monthsSaved / 12);
+  savings.remainingMonths = savings.monthsSaved % 12;
+
   return {
-    monthlyPayment: totalMonthlyPayment,
-    totalPaid,
-    totalInterest,
-    payoffDate
+    baseline,
+    accelerated: finalResult,
+    savings,
+    requiredExtraPayment,
   };
 };
