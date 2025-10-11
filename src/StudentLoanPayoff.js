@@ -145,6 +145,9 @@ export default function StudentLoanPayoff() {
         
         if (planName === 'New IBR' && !hasOnlyPost2014) continue;
         if (planName === 'Old IBR' && hasOnlyPost2014) continue;
+        
+        // This is a new fix to show PAYE for pre-2014 borrowers as well
+        // if (planName === 'PAYE' && !hasOnlyPost2014) continue; 
 
         filteredPlans[planName] = plan;
       }
@@ -833,10 +836,10 @@ export default function StudentLoanPayoff() {
                 </div>
               )}
             </div>
-          <Card>
+          </Card>
         )}
 
-       {/* Strategic Tools - Refinancing */}
+        {/* Strategic Tools - Refinancing */}
         {federalLoans.length > 0 && (
           <Card>
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Strategic Tools</h2>
