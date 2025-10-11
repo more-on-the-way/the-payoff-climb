@@ -278,6 +278,37 @@ export const calculateAcceleratedPayoff = (principal, annualRate, baselinePlan, 
   };
 };
 
+/**
+ * Calculates the required monthly payment to pay off a loan by a target year.
+ */
+export const calculateTargetYearPayment = (principal, annualRate, basePayment, targetYear) => {
+  const currentYear = new Date().getFullYear();
+  const termYears = targetYear - currentYear;
+
+  if (termYears <= 0) {
+    return { error: "Target year must be in the future." };
+  }
+
+  const requiredTotalPayment = calculateAmortizedPayment(principal, annualRate, termYears);
+  
+  if (basePayment >= requiredTotalPayment) {
+    return { 
+      error: "Your current payment plan already meets or beats this target year.",
+      alreadyMeetsTarget: true 
+    };
+  }
+  
+  const requiredExtraPayment = requiredTotalPayment - basePayment;
+
+  // Now, use the accelerated payoff logic to get the full picture
+  const payoffResult = calculateAcceleratedPayoff(principal, annualRate, { monthlyPayment: basePayment, totalPaid: Infinity }, requiredExtraPayment, false);
+
+  return {
+    ...payoffResult,
+    requiredExtraPayment
+  };
+};
+
 // --- MAIN FEDERAL LOAN CALCULATION FUNCTION ---
 
 /**
