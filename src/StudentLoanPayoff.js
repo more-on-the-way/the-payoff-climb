@@ -217,6 +217,84 @@ export default function StudentLoanPayoff() {
     return null;
   }, [refinanceResults, eligiblePlans.plans, refinanceComparisonMode, customPlanSelection]);
 
+// Get ALL available federal plans for acceleration (Phase 3)
+  const allFederalPlans = useMemo(() => {
+    if (Object.keys(eligiblePlans.plans).length === 0) return [];
+    return Object.keys(eligiblePlans.plans);
+  }, [eligiblePlans.plans]);
+
+  // Calculate federal acceleration results (Phase 3)
+  const federalAcceleratedResults = useMemo(() => {
+    if (!selectedAccelerationPlan) return null;
+    
+    const selectedPlan = eligiblePlans.plans[selectedAccelerationPlan];
+    if (!selectedPlan) return null;
+    
+    // Calculate weighted average rate
+    const weightedAvgRate = federalLoans.reduce(
+      (acc, loan) => acc + (parseFloat(loan.balance) * parseFloat(loan.rate) / 100), 0
+    ) / totalFederalBalance;
+    
+    // Mode 1: Extra Payment
+    if (federalCalcMode === 'extra') {
+      if (!federalExtraPayment || parseFloat(federalExtraPayment) <= 0) return null;
+      
+      return calculateAcceleratedPayoff(
+        totalFederalBalance,
+        weightedAvgRate,
+        selectedPlan,
+        parseFloat(federalExtraPayment),
+        selectedPlan.isIdr || false
+      );
+    }
+    
+    // Mode 2: Target Year
+    if (federalCalcMode === 'target') {
+      if (!federalTargetYear || parseInt(federalTargetYear) <= new Date().getFullYear()) return null;
+      
+      const basePayment = typeof selectedPlan.monthlyPayment === 'number' ? selectedPlan.monthlyPayment : 0;
+      
+      const targetResult = calculateTargetYearPayment(
+        totalFederalBalance,
+        weightedAvgRate,
+        basePayment,
+        parseInt(federalTargetYear)
+      );
+      
+      if (targetResult.error) return { error: targetResult.error, alreadyMeetsTarget: targetResult.alreadyMeetsTarget };
+      
+      // Calculate baseline for comparison
+      const baseline = {
+        monthlyPayment: basePayment,
+        totalPaid: selectedPlan.totalPaid,
+        totalInterest: selectedPlan.totalInterest || (selectedPlan.totalPaid - totalFederalBalance),
+        payoffDate: selectedPlan.forgivenessDate || selectedPlan.payoffDate
+      };
+      
+      // Calculate savings
+      const interestSaved = baseline.totalInterest - targetResult.accelerated.totalInterest;
+      const baselineDate = baseline.payoffDate;
+      const targetDate = targetResult.accelerated.payoffDate;
+      const monthsSaved = Math.round((baselineDate - targetDate) / (1000 * 60 * 60 * 24 * 30.44));
+      const yearsSaved = Math.floor(Math.abs(monthsSaved) / 12);
+      const remainingMonths = Math.abs(monthsSaved) % 12;
+      
+      return {
+        baseline,
+        accelerated: targetResult.accelerated,
+        savings: {
+          interestSaved,
+          monthsSaved: Math.abs(monthsSaved),
+          yearsSaved,
+          remainingMonths
+        },
+        requiredExtraPayment: targetResult.requiredExtraPayment
+      };
+    }
+    
+    return null;
+  }, [selectedAccelerationPlan, federalCalcMode, federalExtraPayment, federalTargetYear, totalFederalBalance, federalLoans, eligiblePlans.plans]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
