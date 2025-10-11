@@ -26,7 +26,7 @@ const Select = ({ label, id, children, ...props }) => (
 );
 
 const ResultsCard = ({ title, plan, warning }) => {
-  const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
+  const formatCurrency = (num) => typeof num === 'number' ? `${num.toFixed(2)}` : num;
   const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
 
   const dateToUse = plan.isIdr ? (plan.forgivenessDate || plan.payoffDate) : plan.payoffDate;
@@ -61,6 +61,8 @@ export default function StudentLoanPayoff() {
   // Refinancing State
   const [refinanceRate, setRefinanceRate] = useState('');
   const [refinanceTerm, setRefinanceTerm] = useState('');
+  const [refinanceComparisonMode, setRefinanceComparisonMode] = useState('lowestPayment');
+  const [customPlanSelection, setCustomPlanSelection] = useState('');
   
   // Extra Payment State
   const [extraPayment, setExtraPayment] = useState('');
@@ -153,8 +155,59 @@ export default function StudentLoanPayoff() {
     if (!refinanceRate || !refinanceTerm || totalFederalBalance === 0) return null;
     const monthlyPayment = calculateAmortizedPayment(totalFederalBalance, parseFloat(refinanceRate) / 100, parseFloat(refinanceTerm));
     const totalPaid = monthlyPayment * parseFloat(refinanceTerm) * 12;
-    return { monthlyPayment, totalPaid, totalInterest: totalPaid - totalFederalBalance };
+    const payoffDate = new Date();
+    payoffDate.setFullYear(payoffDate.getFullYear() + parseFloat(refinanceTerm));
+    return { 
+      monthlyPayment, 
+      totalPaid, 
+      totalInterest: totalPaid - totalFederalBalance,
+      payoffDate 
+    };
   }, [refinanceRate, refinanceTerm, totalFederalBalance]);
+
+  // Get Best Federal Plan for Comparison
+  const bestFederalPlan = useMemo(() => {
+    if (!refinanceResults || Object.keys(eligiblePlans.plans).length === 0) return null;
+    
+    const plans = eligiblePlans.plans;
+    
+    // Custom mode - use user's selection
+    if (refinanceComparisonMode === 'custom' && customPlanSelection) {
+      return { name: customPlanSelection, plan: plans[customPlanSelection] };
+    }
+    
+    // Lowest Monthly Payment mode
+    if (refinanceComparisonMode === 'lowestPayment') {
+      let lowestPlan = null;
+      let lowestPayment = Infinity;
+      
+      for (const [name, plan] of Object.entries(plans)) {
+        const payment = typeof plan.monthlyPayment === 'number' ? plan.monthlyPayment : 0;
+        if (payment > 0 && payment < lowestPayment) {
+          lowestPayment = payment;
+          lowestPlan = { name, plan };
+        }
+      }
+      return lowestPlan;
+    }
+    
+    // Lowest Total Cost mode
+    if (refinanceComparisonMode === 'lowestTotal') {
+      let lowestPlan = null;
+      let lowestTotal = Infinity;
+      
+      for (const [name, plan] of Object.entries(plans)) {
+        const total = typeof plan.totalPaid === 'number' ? plan.totalPaid : Infinity;
+        if (total < lowestTotal) {
+          lowestTotal = total;
+          lowestPlan = { name, plan };
+        }
+      }
+      return lowestPlan;
+    }
+    
+    return null;
+  }, [refinanceResults, eligiblePlans.plans, refinanceComparisonMode, customPlanSelection]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6 lg:p-8">
@@ -411,7 +464,7 @@ export default function StudentLoanPayoff() {
                   key={name} 
                   title={name} 
                   plan={plan} 
-                  warning={plan.sunset && `This plan ends on ${new Date(plan.sunset).toLocaleDateString()}.`}
+                  warning={plan.sunset && `▲ This plan ends on ${new Date(plan.sunset).toLocaleDateString()}.`}
                 />
               ))}
             </div>
@@ -450,7 +503,63 @@ export default function StudentLoanPayoff() {
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Strategic Tools</h2>
             <div className="bg-red-50 border border-red-200 p-6 rounded-lg">
               <h3 className="text-xl font-semibold text-red-800 mb-4">Refinancing Simulator</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Comparison Mode Selector */}
+              <div className="mb-6 bg-white p-4 rounded-lg border border-red-300">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Compare refinancing based on:</p>
+                <div className="space-y-2">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="comparisonMode"
+                      value="lowestPayment"
+                      checked={refinanceComparisonMode === 'lowestPayment'}
+                      onChange={(e) => setRefinanceComparisonMode(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Lowest Monthly Payment</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="comparisonMode"
+                      value="lowestTotal"
+                      checked={refinanceComparisonMode === 'lowestTotal'}
+                      onChange={(e) => setRefinanceComparisonMode(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Lowest Total Cost</span>
+                  </label>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="comparisonMode"
+                      value="custom"
+                      checked={refinanceComparisonMode === 'custom'}
+                      onChange={(e) => setRefinanceComparisonMode(e.target.value)}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">Custom Plan</span>
+                  </label>
+                  {refinanceComparisonMode === 'custom' && (
+                    <div className="ml-6 mt-2">
+                      <select
+                        value={customPlanSelection}
+                        onChange={(e) => setCustomPlanSelection(e.target.value)}
+                        className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">Select a plan to compare</option>
+                        {Object.keys(eligiblePlans.plans).map(planName => (
+                          <option key={planName} value={planName}>{planName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Input Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <Input 
                   label="New Interest Rate (%)" 
                   id="refiRate" 
@@ -468,16 +577,63 @@ export default function StudentLoanPayoff() {
                   onChange={(e) => setRefinanceTerm(e.target.value)} 
                 />
               </div>
-              {refinanceResults && (
-                <div className="mt-4">
-                  <ResultsCard title="Refinanced Loan" plan={refinanceResults} />
+
+              {/* Side-by-Side Comparison */}
+              {refinanceResults && bestFederalPlan && (
+                <div className="mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Federal Plan Card */}
+                    <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-2xl">🛡️</span>
+                        <h4 className="font-bold text-blue-900">Your Federal Option</h4>
+                      </div>
+                      <p className="text-xs text-blue-700 mb-3 font-semibold">Protected</p>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-semibold">Plan:</span> {bestFederalPlan.name}</p>
+                        <p><span className="font-semibold">Monthly Payment:</span> ${typeof bestFederalPlan.plan.monthlyPayment === 'number' ? bestFederalPlan.plan.monthlyPayment.toFixed(2) : bestFederalPlan.plan.monthlyPayment}</p>
+                        <p><span className="font-semibold">Total Paid:</span> ${bestFederalPlan.plan.totalPaid.toFixed(2)}</p>
+                        <p><span className="font-semibold">Payoff Date:</span> {(bestFederalPlan.plan.forgivenessDate || bestFederalPlan.plan.payoffDate).toLocaleDateString()}</p>
+                        {bestFederalPlan.plan.totalInterest != null && (
+                          <p><span className="font-semibold">Total Interest:</span> ${bestFederalPlan.plan.totalInterest.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Refinanced Plan Card */}
+                    <div className="bg-red-50 border-2 border-red-400 rounded-lg p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-2xl">⚠️</span>
+                        <h4 className="font-bold text-red-900">Refinanced Option</h4>
+                      </div>
+                      <p className="text-xs text-red-700 mb-3 font-semibold">Unprotected</p>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="font-semibold">Plan:</span> Private Refinance</p>
+                        <p><span className="font-semibold">Monthly Payment:</span> ${refinanceResults.monthlyPayment.toFixed(2)}</p>
+                        <p><span className="font-semibold">Total Paid:</span> ${refinanceResults.totalPaid.toFixed(2)}</p>
+                        <p><span className="font-semibold">Payoff Date:</span> {refinanceResults.payoffDate.toLocaleDateString()}</p>
+                        <p><span className="font-semibold">Total Interest:</span> ${refinanceResults.totalInterest.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
-              <div className="mt-4 bg-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-md">
-                <h4 className="font-bold">Warning: Irreversible Decision</h4>
-                <p className="text-sm">
-                  Refinancing federal loans into a private loan means you <strong>permanently lose access</strong> to 
-                  all federal benefits, including income-driven repayment plans and all loan forgiveness programs (like PSLF).
+
+              {/* Enhanced Warning */}
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-md">
+                <h4 className="font-bold text-lg mb-2">⚠️ WARNING: Irreversible Decision</h4>
+                <p className="text-sm mb-3">
+                  Refinancing federal loans into a private loan means you <strong>permanently lose access to:</strong>
+                </p>
+                <ul className="text-sm space-y-1 ml-4">
+                  <li>✗ Income-Driven Repayment Plans (IBR, PAYE, ICR, RAP)</li>
+                  <li>✗ Loan Forgiveness Programs (PSLF, IDR forgiveness)</li>
+                  <li>✗ Federal Forbearance and Deferment Options</li>
+                  <li>✗ Income-Based Payment Adjustments</li>
+                  <li>✗ Death and Disability Discharge</li>
+                </ul>
+                <p className="text-sm mt-3 font-bold">
+                  This decision CANNOT be reversed. Once you refinance to a private loan, you can never get these federal protections back.
                 </p>
               </div>
             </div>
