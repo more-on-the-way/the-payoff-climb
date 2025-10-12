@@ -4,9 +4,6 @@
 import React, { useState, useMemo } from 'react';
 import { PlusCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment, calculateAcceleratedPayoff, calculateTargetYearPayment } from './loanCalculations';
-<div className="test-tailwind">
-  Tailwind Utility Test: If this box is blue with white text, Tailwind is working!
-</div>
 // --- Reusable UI Components ---
 const Card = ({ children, className = '', ...props }) => (
   <div className={`bg-white rounded-2xl shadow-lg p-6 sm:p-8 ${className}`} {...props}>
