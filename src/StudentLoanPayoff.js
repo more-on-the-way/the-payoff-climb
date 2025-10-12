@@ -1,8 +1,8 @@
 // Updated: 10/12/2025
-// Phase 5, Step 2: Implement Progressive Disclosure for strategy sections.
+// Phase 5, Step 3: Implement Advanced Visualizations.
 import React, { useState, useMemo } from 'react';
-import { PlusCircle, XCircle, AlertTriangle, ChevronsRight } from 'lucide-react';
-import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment, calculateAcceleratedPayoff, calculateTargetYearPayment } from './loanCalculations';
+import { PlusCircle, XCircle, AlertTriangle, ChevronsRight, CalendarClock, Download } from 'lucide-react';
+import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment, calculateAcceleratedPayoff, calculateTargetYearPayment, generateAmortizationSchedule } from './loanCalculations';
 
 const usStates = [
   { value: 'AL', label: 'Alabama' }, { value: 'AK', label: 'Alaska' },
@@ -170,6 +170,52 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
   );
 };
 
+// --- NEW: Debt-Free Timeline Component ---
+const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
+  const today = new Date();
+  
+  // Ensure dates are valid
+  if (!baselineDate || !acceleratedDate || !(baselineDate instanceof Date) || !(acceleratedDate instanceof Date)) {
+    return null;
+  }
+  
+  const totalDuration = baselineDate.getTime() - today.getTime();
+  const acceleratedDuration = acceleratedDate.getTime() - today.getTime();
+
+  if (totalDuration <= 0) return null;
+  
+  const acceleratedPosition = Math.max(0, Math.min(100, (acceleratedDuration / totalDuration) * 100));
+
+  return (
+    <div className="mt-6 bg-white rounded-lg p-5 border-2 border-brand-blue/30">
+      <h4 className="font-bold text-brand-blue-dark mb-6 text-center">Debt-Free Timeline</h4>
+      <div className="relative w-full h-2 bg-gray-200 rounded-full">
+        <div className="absolute h-2 bg-brand-green rounded-full" style={{width: `${acceleratedPosition}%`}}></div>
+        
+        {/* Today */}
+        <div className="absolute top-0 left-0 -translate-x-1/2">
+          <div className="w-4 h-4 bg-brand-blue rounded-full border-2 border-white"></div>
+          <p className="text-xs font-semibold text-brand-blue-dark mt-2 text-center">Today</p>
+        </div>
+        
+        {/* Accelerated Payoff */}
+        <div className="absolute top-0 -translate-x-1/2" style={{left: `${acceleratedPosition}%`}}>
+          <div className="w-4 h-4 bg-brand-green-dark rounded-full border-2 border-white"></div>
+          <p className="text-xs font-semibold text-brand-green-dark mt-2 text-center whitespace-nowrap">Accelerated Payoff</p>
+          <p className="text-xs text-gray-500 text-center">{acceleratedDate.toLocaleDateString()}</p>
+        </div>
+        
+        {/* Baseline Payoff */}
+        <div className="absolute top-0 right-0 translate-x-1/2">
+          <div className="w-4 h-4 bg-gray-400 rounded-full border-2 border-white"></div>
+          <p className="text-xs font-semibold text-gray-600 mt-2 text-center">Baseline Payoff</p>
+          <p className="text-xs text-gray-500 text-center">{baselineDate.toLocaleDateString()}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Application Component ---
 export default function StudentLoanPayoff() {
   // Financial Profile State
@@ -199,7 +245,7 @@ export default function StudentLoanPayoff() {
   const [privateCalcMode, setPrivateCalcMode] = useState('extra');
   const [privateTargetYear, setPrivateTargetYear] = useState('');
 
-  // --- NEW: State for Progressive Disclosure ---
+  // State for Progressive Disclosure
   const [showFederalStrategy, setShowFederalStrategy] = useState(false);
   const [showPrivateStrategy, setShowPrivateStrategy] = useState(false);
 
@@ -263,18 +309,19 @@ export default function StudentLoanPayoff() {
       return { plans: filteredPlans, contaminationWarning: contaminationTriggered };
     }
 
-    if (isGrandfathered) {
-      const hasOnlyPost2014 = federalLoans.every(l => l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
-
-      for (const planName in allPlans) {
-        const plan = allPlans[planName];
-        if (plan.sunset && new Date() >= plan.sunset) continue;
+    // This logic handles grandfathered borrowers and ensures correct plan visibility
+    if (!isNewBorrower) {
+        const hasPre2014 = federalLoans.some(l => l.originationDate === 'before_2014');
         
-        if (planName === 'New IBR' && !hasOnlyPost2014) continue;
-        if (planName === 'Old IBR' && hasOnlyPost2014) continue;
+        for (const planName in allPlans) {
+            const plan = allPlans[planName];
+            if (plan.sunset && new Date() >= plan.sunset) continue;
 
-        filteredPlans[planName] = plan;
-      }
+            if (planName === 'New IBR' && hasPre2014) continue;
+            if (planName === 'Old IBR' && !hasPre2014) continue;
+
+            filteredPlans[planName] = plan;
+        }
     }
     return { plans: filteredPlans, contaminationWarning: false };
   }, [agi, familySize, stateOfResidence, filingStatus, federalLoans, plansToTakeNewLoan]);
@@ -360,7 +407,8 @@ export default function StudentLoanPayoff() {
     if (!selectedPlan) return null;
     
     const weightedAvgRate = federalLoans.reduce(
-      (acc, loan) => acc + (parseFloat(loan.balance) * parseFloat(loan.rate) / 100), 0
+      (acc, loan) => acc + (parseFloat(loan.balance || 0) * (parseFloat(loan.rate || 0) / 100)),
+      0
     ) / totalFederalBalance;
     
     if (federalCalcMode === 'extra') {
@@ -387,6 +435,33 @@ export default function StudentLoanPayoff() {
     
     return null;
   }, [selectedAccelerationPlan, federalCalcMode, federalExtraPayment, federalTargetYear, totalFederalBalance, federalLoans, eligiblePlans.plans]);
+
+  // --- NEW: CSV Download Handler ---
+  const handleDownloadSchedule = (principal, annualRate, monthlyPayment, fileName) => {
+    const schedule = generateAmortizationSchedule(principal, annualRate, monthlyPayment);
+    if (schedule.length === 0) return;
+    
+    const headers = "Payment Number,Date,Payment Amount,Principal,Interest,Remaining Balance";
+    const csvContent = [
+      headers,
+      ...schedule.map(row => 
+        `${row.paymentNumber},${row.paymentDate},${row.paymentAmount.toFixed(2)},${row.principal.toFixed(2)},${row.interest.toFixed(2)},${row.remainingBalance.toFixed(2)}`
+      )
+    ].join("\n");
+  
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-brand-background p-4 sm:p-6 lg:p-8">
@@ -603,8 +678,22 @@ export default function StudentLoanPayoff() {
                       </div>
                     </div>
 
+                    <DebtFreeTimeline 
+                      baselineDate={federalAcceleratedResults.baseline.payoffDate}
+                      acceleratedDate={federalAcceleratedResults.accelerated.payoffDate}
+                    />
+
+                    <div className="mt-6 text-center">
+                      <button 
+                        onClick={() => handleDownloadSchedule(totalFederalBalance, (federalLoans.reduce((acc, loan) => acc + (parseFloat(loan.balance) * parseFloat(loan.rate) / 100),0) / totalFederalBalance), federalAcceleratedResults.accelerated.monthlyPayment, 'federal-loan-schedule.csv')}
+                        className="flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 text-sm bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition"
+                      >
+                        <Download size={16} /> Download Full Schedule
+                      </button>
+                    </div>
+
                     {federalAcceleratedResults.paidOffBeforeForgiveness && (
-                      <div className="bg-blue-100 rounded-lg p-4 border border-blue-300">
+                      <div className="bg-blue-100 rounded-lg p-4 border border-blue-300 mt-4">
                         <p className="text-sm text-blue-800"><span className="font-semibold">Note:</span> You'll pay off your loans before reaching forgiveness eligibility. Your extra payments will save you money and time.</p>
                       </div>
                     )}
@@ -686,9 +775,23 @@ export default function StudentLoanPayoff() {
                         </div>
                       </div>
                     )}
-
+                    
                     {privateLoanResults && !privateLoanResults.error && (parseFloat(extraPayment || 0) > 0 || privateCalcMode === 'target') && (
-                      <PaymentBreakdownVisualizer baseline={privateLoanResults.baseline} accelerated={privateLoanResults.accelerated} totalOriginalBalance={totalPrivateBalance} calcMode={privateCalcMode} />
+                      <>
+                        <PaymentBreakdownVisualizer baseline={privateLoanResults.baseline} accelerated={privateLoanResults.accelerated} totalOriginalBalance={totalPrivateBalance} calcMode={privateCalcMode} />
+                        <DebtFreeTimeline 
+                          baselineDate={privateLoanResults.baseline.payoffDate}
+                          acceleratedDate={privateLoanResults.accelerated.payoffDate}
+                        />
+                         <div className="mt-6 text-center">
+                          <button 
+                            onClick={() => handleDownloadSchedule(totalPrivateBalance, (privateLoans.reduce((acc, loan) => acc + (loan.balance * loan.annualRate), 0) / totalPrivateBalance), privateLoanResults.accelerated.monthlyPayment, 'private-loan-schedule.csv')}
+                            className="flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 text-sm bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition"
+                          >
+                            <Download size={16} /> Download Full Schedule
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -775,3 +878,4 @@ export default function StudentLoanPayoff() {
     </div>
   );
 }
+

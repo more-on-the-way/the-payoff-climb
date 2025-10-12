@@ -230,6 +230,7 @@ export const calculateAcceleratedPayoff = (principal, annualRate, baselinePlan, 
     },
     savings: {
       interestSaved: (baselinePlan.totalPaid - principal) - (totalPaid - principal),
+      monthsSaved: Math.round(( (baselinePlan.forgivenessDate || baselinePlan.payoffDate) - payoffDate) / (1000 * 60 * 60 * 24 * 30.44))
     },
     paidOffBeforeForgiveness: paidOffBeforeForgiveness
   };
@@ -256,7 +257,7 @@ export const calculateTargetYearPayment = (principal, annualRate, basePayment, t
   }
   
   const requiredExtraPayment = requiredTotalPayment - basePayment;
-  const payoffResult = calculateAcceleratedPayoff(principal, annualRate, { monthlyPayment: basePayment, totalPaid: Infinity }, requiredExtraPayment, false);
+  const payoffResult = calculateAcceleratedPayoff(principal, annualRate, { monthlyPayment: basePayment, totalPaid: Infinity, payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 30)) }, requiredExtraPayment, false);
 
   return {
     ...payoffResult,
@@ -483,4 +484,51 @@ export const calculatePrivateLoanPayoff = (privateLoans, calcMode, extraPayment 
   };
 
   return { baseline, accelerated: finalResult, savings, requiredExtraPayment };
+};
+
+
+/**
+ * NEW: Generates a full month-by-month amortization schedule.
+ * This is a self-contained function for generating data for CSV export.
+ */
+export const generateAmortizationSchedule = (principal, annualRate, monthlyPayment) => {
+  if (principal <= 0 || annualRate < 0 || monthlyPayment <= 0) {
+    return [];
+  }
+
+  const schedule = [];
+  let remainingBalance = principal;
+  const monthlyRate = annualRate / 12;
+  let paymentNumber = 0;
+  
+  const maxPayments = 600; // 50 year safety limit
+
+  while (remainingBalance > 0 && paymentNumber < maxPayments) {
+    paymentNumber++;
+    const interestComponent = remainingBalance * monthlyRate;
+    
+    // The payment cannot exceed the remaining balance plus interest
+    const actualPayment = Math.min(monthlyPayment, remainingBalance + interestComponent);
+    
+    const principalComponent = actualPayment - interestComponent;
+    
+    remainingBalance -= principalComponent;
+
+    // Ensure balance doesn't go negative due to floating point math on the last payment
+    if (remainingBalance < 0) remainingBalance = 0;
+
+    const paymentDate = new Date();
+    paymentDate.setMonth(paymentDate.getMonth() + paymentNumber);
+
+    schedule.push({
+      paymentNumber,
+      paymentDate: paymentDate.toLocaleDateString(),
+      paymentAmount: actualPayment,
+      principal: principalComponent,
+      interest: interestComponent,
+      remainingBalance,
+    });
+  }
+
+  return schedule;
 };
