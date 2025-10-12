@@ -231,7 +231,6 @@ export default function StudentLoanPayoff() {
     }
 
     if (isGrandfathered) {
-      const hasPre2014 = federalLoans.some(l => l.originationDate === 'before_2014');
       const hasOnlyPost2014 = federalLoans.every(l => l.originationDate === 'after_2014' || l.originationDate === 'after_2026');
 
       for (const planName in allPlans) {
