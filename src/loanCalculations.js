@@ -40,7 +40,6 @@ export function calculateAmortizedPayment(principal, annualRate, years) {
   return principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
          (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
 }
-
 // --- SIMULATION ENGINES ---
 
 /**
@@ -106,7 +105,6 @@ function simulateIDR({
     monthlyPayment: initialMonthlyPayment 
   };
 }
-
 /**
  * Simulates the Repayment Assistance Plan (RAP)
  * Features:
@@ -210,7 +208,6 @@ function simulateRAP({
     monthlyPayment: initialMonthlyPayment 
   };
 }
-
 /**
  * Simulates an accelerated payoff for a federal loan plan
  * Features:
@@ -272,6 +269,7 @@ export const calculateAcceleratedPayoff = (principal, annualRate, baselinePlan, 
     },
     savings: {
       interestSaved: (baselinePlan.totalPaid - principal) - (totalPaid - principal),
+      monthsSaved: Math.round((baselinePlan.payoffDate - payoffDate) / (1000 * 60 * 60 * 24 * 30.44))
     },
     paidOffBeforeForgiveness: paidOffBeforeForgiveness
   };
@@ -307,7 +305,6 @@ export const calculateTargetYearPayment = (principal, annualRate, basePayment, t
     requiredExtraPayment
   };
 };
-
 // --- MAIN FEDERAL LOAN CALCULATION FUNCTION ---
 
 /**
@@ -334,6 +331,7 @@ export const calculatePlans = (financialProfile, loans) => {
   plans['10-Year Standard'] = { 
     monthlyPayment: standardMonthly, 
     totalPaid: standardMonthly * 120, 
+    totalInterest: (standardMonthly * 120) - totalFederalBalance,
     payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)) 
   };
 
@@ -341,6 +339,7 @@ export const calculatePlans = (financialProfile, loans) => {
   plans['Graduated'] = { 
     monthlyPayment: `Starts at ~$${(standardMonthly * 0.75).toFixed(2)}, increases every 2 years`, 
     totalPaid: standardMonthly * 120 * 1.1, 
+    totalInterest: (standardMonthly * 120 * 1.1) - totalFederalBalance,
     payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)) 
   };
 
@@ -350,6 +349,7 @@ export const calculatePlans = (financialProfile, loans) => {
     plans['Extended'] = { 
       monthlyPayment: extendedMonthly, 
       totalPaid: extendedMonthly * 300, 
+      totalInterest: (extendedMonthly * 300) - totalFederalBalance,
       payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 25)) 
     };
   }
@@ -369,6 +369,7 @@ export const calculatePlans = (financialProfile, loans) => {
   plans['Standardized Tiered Plan'] = { 
     monthlyPayment: tieredMonthly, 
     totalPaid: tieredMonthly * tieredTerm * 12, 
+    totalInterest: (tieredMonthly * tieredTerm * 12) - totalFederalBalance,
     payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + tieredTerm)) 
   };
 
@@ -453,10 +454,9 @@ export const calculatePlans = (financialProfile, loans) => {
 
   return plans;
 };
-
 // --- PRIVATE LOAN CALCULATIONS ---
 
-// Helper function to run the simulation
+// Helper function to run the simulation (MOVED OUTSIDE to fix ESLint error)
 const runSimulation = (monthlyPayment, loansWithPayments, totalOriginalBalance) => {
   const loans = loansWithPayments.map(l => ({ ...l, currentBalance: l.balance }));
   const sortedLoans = [...loans].sort((a, b) => b.annualRate - a.annualRate);
@@ -500,7 +500,6 @@ const runSimulation = (monthlyPayment, loansWithPayments, totalOriginalBalance) 
   
   return { monthlyPayment, totalPaid, totalInterest, payoffDate };
 };
-
 /**
  * Calculates private loan payoff using Debt Avalanche, enhanced for both Extra Payment and Target Year modes.
  */
