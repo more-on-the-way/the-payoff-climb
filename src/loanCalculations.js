@@ -1,12 +1,14 @@
 // ============================================================================
-// LOAN CALCULATIONS MODULE
-// Handles all federal and private student loan repayment calculations
+// LOAN CALCULATIONS MODULE (REVISED OCT 2025)
+// Handles federal and private student loan calculations according to the
+// "One Big Beautiful Bill Act" (H.R. 1) of 2025.
 // ============================================================================
 
 // --- UTILITY FUNCTIONS ---
+
 /**
- * Get federal poverty guideline based on family size and state
- * Uses 2024 poverty guidelines with Alaska/Hawaii adjustments
+ * Get federal poverty guideline based on family size and state.
+ * Uses 2024 poverty guidelines with Alaska/Hawaii adjustments.
  */
 function getPovertyGuideline(familySize, stateOfResidence) {
   const basePovertyLine = 15060;
@@ -16,8 +18,8 @@ function getPovertyGuideline(familySize, stateOfResidence) {
 }
 
 /**
- * Calculate discretionary income for IDR plans
- * Discretionary income = AGI - (poverty guideline × multiplier)
+ * Calculate discretionary income for legacy IDR plans (IBR, PAYE, ICR).
+ * Discretionary income = AGI - (poverty guideline × multiplier).
  */
 function calculateDiscretionaryIncome(agi, familySize, stateOfResidence, povertyLineMultiplier = 1.5) {
   const povertyGuideline = getPovertyGuideline(familySize, stateOfResidence);
@@ -25,8 +27,8 @@ function calculateDiscretionaryIncome(agi, familySize, stateOfResidence, poverty
 }
 
 /**
- * Calculate standard amortization payment (exported for external use)
- * Uses the standard mortgage/loan amortization formula
+ * Calculate standard amortization payment.
+ * Uses the standard mortgage/loan amortization formula.
  */
 export function calculateAmortizedPayment(principal, annualRate, years) {
   if (principal <= 0 || years <= 0) return 0;
@@ -40,17 +42,14 @@ export function calculateAmortizedPayment(principal, annualRate, years) {
   return principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
          (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
 }
+
 // --- SIMULATION ENGINES ---
 
 /**
- * Simulates standard IDR plans (IBR, PAYE, ICR)
- * Features:
- * - Annual income growth (3%)
- * - Payment cap at 10-year standard amount
- * - Monthly interest accrual
- * - Returns payoff or forgiveness results
+ * Simulates legacy IDR plans (IBR, PAYE, ICR) and the judicially blocked SAVE plan.
+ * Features annual income growth and calculates payoff or forgiveness outcomes.
  */
-function simulateIDR({ 
+function simulateLegacyIDR({ 
   principal, 
   annualRate, 
   forgivenessYears, 
@@ -67,153 +66,121 @@ function simulateIDR({
   const monthlyRate = annualRate / 12;
   const forgivenessMonths = forgivenessYears * 12;
   
-  // Calculate initial payment with cap
+  // Calculate initial payment to display
   const initialDiscretionary = calculateDiscretionaryIncome(initialAgi, familySize, stateOfResidence, povertyMultiplier);
   const initialMonthlyPayment = Math.min(standardPaymentCap, (initialDiscretionary * paymentPercentage) / 12);
 
   for (let month = 1; month <= forgivenessMonths; month++) {
-    // Check if loan is paid off early
     if (balance <= 0) {
       const payoffDate = new Date();
       payoffDate.setMonth(payoffDate.getMonth() + month - 1);
       return { totalPaid, payoffDate, monthlyPayment: initialMonthlyPayment };
     }
 
-    // Apply annual income growth (3% per year)
     if (month > 1 && (month - 1) % 12 === 0) {
-      currentAgi *= 1.03;
+      currentAgi *= 1.03; // Assume 3% annual income growth
     }
     
-    // Recalculate payment based on current income
     const discretionaryIncome = calculateDiscretionaryIncome(currentAgi, familySize, stateOfResidence, povertyMultiplier);
     const currentMonthlyPayment = Math.min(standardPaymentCap, (discretionaryIncome * paymentPercentage) / 12);
     
-    // Apply interest
-    const interest = balance * monthlyRate;
-    balance += interest;
+    balance += balance * monthlyRate;
     
-    // Make payment (cannot exceed remaining balance)
     const payment = Math.min(currentMonthlyPayment, balance);
     balance -= payment;
     totalPaid += payment;
   }
 
-  // Reached forgiveness period
-  return { 
-    totalPaid, 
-    forgivenessDate: new Date(new Date().setFullYear(new Date().getFullYear() + forgivenessYears)), 
-    monthlyPayment: initialMonthlyPayment 
-  };
+  const forgivenessDate = new Date();
+  forgivenessDate.setFullYear(forgivenessDate.getFullYear() + forgivenessYears);
+  return { totalPaid, forgivenessDate, monthlyPayment: initialMonthlyPayment };
 }
+
 /**
- * Simulates the Repayment Assistance Plan (RAP)
- * Features:
- * - Tiered payment percentage based on AGI
- * - $50 deduction per dependent
- * - $10 minimum monthly payment
- * - Interest subsidy (unpaid interest waived)
- * - $50 principal reduction guarantee
- * - 30-year forgiveness timeline
+ * [cite_start]Simulates the new Repayment Assistance Plan (RAP) as defined by H.R. 1. [cite: 92]
+ * This model is completely overhauled to reflect the new law's rules.
  */
 function simulateRAP({ 
   principal, 
   annualRate, 
   initialAgi, 
   familySize, 
-  stateOfResidence, 
-  filingStatus, 
-  standardPaymentCap 
+  filingStatus 
 }) {
   let balance = principal;
   let totalPaid = 0;
   let currentAgi = initialAgi;
   const monthlyRate = annualRate / 12;
-  const forgivenessMonths = 30 * 12;
+  const forgivenessMonths = 360; [cite_start]// RAP forgiveness is 30 years [cite: 119]
 
-  /**
-   * RAP payment percentage lookup table
-   * Returns the percentage of AGI to be paid annually
-   */
-  const getRAPPaymentPercentage = (agi) => {
-    if (agi <= 10000) return 0;
-    if (agi <= 20000) return 0.01;
-    if (agi <= 30000) return 0.02;
-    if (agi <= 40000) return 0.03;
-    if (agi <= 50000) return 0.04;
-    if (agi <= 60000) return 0.05;
-    if (agi <= 70000) return 0.06;
-    if (agi <= 80000) return 0.07;
-    if (agi <= 90000) return 0.08;
-    if (agi <= 100000) return 0.09;
-    return 0.10;
+  [cite_start]// Helper to calculate annual RAP payment based on tiered AGI structure [cite: 107]
+  const getRAPAnnualPayment = (agi) => {
+    if (agi <= 10000) return 120;
+    if (agi <= 20000) return agi * 0.01;
+    if (agi <= 30000) return agi * 0.02;
+    if (agi <= 40000) return agi * 0.03;
+    if (agi <= 50000) return agi * 0.04;
+    if (agi <= 60000) return agi * 0.05;
+    if (agi <= 70000) return agi * 0.06;
+    if (agi <= 80000) return agi * 0.07;
+    if (agi <= 90000) return agi * 0.08;
+    if (agi <= 100000) return agi * 0.09;
+    return agi * 0.10;
   };
-
-  // Calculate dependents (single: family - 1, married: family - 2)
+  
   const dependents = filingStatus === 'single' 
     ? Math.max(0, familySize - 1) 
     : Math.max(0, familySize - 2);
   
-  // Calculate initial payment
-  const initialAnnualPayment = (initialAgi * getRAPPaymentPercentage(initialAgi)) - (dependents * 50);
-  const initialMonthlyPayment = Math.min(standardPaymentCap, Math.max(10, initialAnnualPayment / 12));
-  
+  // Calculate initial payment for display
+  const initialAnnualPayment = getRAPAnnualPayment(initialAgi) - (dependents * 50); [cite_start]// [cite: 105]
+  const initialMonthlyPayment = Math.max(10, initialAnnualPayment / 12); [cite_start]// Minimum payment is $10 [cite: 119]
+
   for (let month = 1; month <= forgivenessMonths; month++) {
-    // Check if loan is paid off early
     if (balance <= 0) {
       const payoffDate = new Date();
       payoffDate.setMonth(payoffDate.getMonth() + month - 1);
       return { totalPaid, payoffDate, monthlyPayment: initialMonthlyPayment };
     }
 
-    // Apply annual income growth (3% per year)
     if (month > 1 && (month - 1) % 12 === 0) {
       currentAgi *= 1.03;
     }
     
-    // Calculate current payment
-    const annualPayment = (currentAgi * getRAPPaymentPercentage(currentAgi)) - (dependents * 50);
-    const monthlyPayment = Math.min(standardPaymentCap, Math.max(10, annualPayment / 12));
+    const annualPayment = getRAPAnnualPayment(currentAgi) - (dependents * 50);
+    const monthlyPayment = Math.max(10, annualPayment / 12);
 
-    // Calculate interest
     const interest = balance * monthlyRate;
     const principalBeforePayment = balance;
 
-    // Interest Subsidy: If payment < interest, unpaid interest is waived
+    [cite_start]// RAP Interest Subsidy: Unpaid interest is not charged [cite: 119]
     if (monthlyPayment < interest) {
-      // Interest subsidy applies - don't add any interest to balance
+      // Balance does not increase
     } else {
-      // Normal case - add interest before payment
       balance += interest;
     }
     
-    // Make payment
     const paymentApplied = Math.min(monthlyPayment, balance);
     balance -= paymentApplied;
     totalPaid += paymentApplied;
     
-    // Calculate how much principal was reduced
-    const principalPaid = principalBeforePayment + ((monthlyPayment < interest) ? interest : 0) - balance;
-
-    // $50 Principal Reduction Guarantee
+    [cite_start]// RAP Principal Matching ($50 Rule) [cite: 119]
+    const principalPaid = principalBeforePayment - balance + (monthlyPayment < interest ? interest : 0);
     if (principalPaid < 50) {
       const shortfall = 50 - principalPaid;
       balance = Math.max(0, balance - shortfall);
     }
   }
   
-  // Reached forgiveness period
-  return { 
-    totalPaid, 
-    forgivenessDate: new Date(new Date().setFullYear(new Date().getFullYear() + 30)), 
-    monthlyPayment: initialMonthlyPayment 
-  };
+  const forgivenessDate = new Date();
+  forgivenessDate.setFullYear(forgivenessDate.getFullYear() + 30);
+  return { totalPaid, forgivenessDate, monthlyPayment: initialMonthlyPayment };
 }
+
+// --- ACCELERATED & TARGET PAYOFF ---
+
 /**
- * Simulates an accelerated payoff for a federal loan plan
- * Features:
- * - Takes a baseline plan and an extra monthly payment
- * - Recalculates payoff date and total cost
- * - Determines if the loan is paid off before forgiveness
+ * Simulates an accelerated payoff for any loan plan.
  */
 export const calculateAcceleratedPayoff = (principal, annualRate, baselinePlan, extraPayment, isIdrPlan) => {
   if (extraPayment <= 0) {
@@ -232,16 +199,11 @@ export const calculateAcceleratedPayoff = (principal, annualRate, baselinePlan, 
   
   let totalPaid = 0;
   let month = 0;
-  const maxMonths = 600; // Safety break at 50 years
+  const maxMonths = 600; // 50 years
 
   while (balance > 0 && month < maxMonths) {
     month++;
-    
-    // Add interest for the month
-    const interest = balance * monthlyRate;
-    balance += interest;
-    
-    // Make the accelerated payment
+    balance += balance * monthlyRate;
     const payment = Math.min(totalMonthlyPayment, balance);
     balance -= payment;
     totalPaid += payment;
@@ -250,7 +212,6 @@ export const calculateAcceleratedPayoff = (principal, annualRate, baselinePlan, 
   const payoffDate = new Date();
   payoffDate.setMonth(payoffDate.getMonth() + month);
 
-  // Compare payoff date with original forgiveness date
   const paidOffBeforeForgiveness = isIdrPlan && baselinePlan.forgivenessDate && payoffDate < baselinePlan.forgivenessDate;
 
   return {
@@ -269,7 +230,6 @@ export const calculateAcceleratedPayoff = (principal, annualRate, baselinePlan, 
     },
     savings: {
       interestSaved: (baselinePlan.totalPaid - principal) - (totalPaid - principal),
-      monthsSaved: Math.round((baselinePlan.payoffDate - payoffDate) / (1000 * 60 * 60 * 24 * 30.44))
     },
     paidOffBeforeForgiveness: paidOffBeforeForgiveness
   };
@@ -296,8 +256,6 @@ export const calculateTargetYearPayment = (principal, annualRate, basePayment, t
   }
   
   const requiredExtraPayment = requiredTotalPayment - basePayment;
-
-  // Now, use the accelerated payoff logic to get the full picture
   const payoffResult = calculateAcceleratedPayoff(principal, annualRate, { monthlyPayment: basePayment, totalPaid: Infinity }, requiredExtraPayment, false);
 
   return {
@@ -305,14 +263,13 @@ export const calculateTargetYearPayment = (principal, annualRate, basePayment, t
     requiredExtraPayment
   };
 };
+
 // --- MAIN FEDERAL LOAN CALCULATION FUNCTION ---
 
 /**
- * Calculate all available repayment plans for federal loans
- * Returns an object with plan names as keys and plan details as values
+ * Calculates all available repayment plans for federal loans under H.R. 1.
  */
 export const calculatePlans = (financialProfile, loans) => {
-  // Calculate total balance and weighted average interest rate
   const totalFederalBalance = loans.reduce((acc, loan) => acc + parseFloat(loan.balance || 0), 0);
   if (totalFederalBalance === 0) return {};
 
@@ -324,9 +281,8 @@ export const calculatePlans = (financialProfile, loans) => {
   const { agi, familySize, stateOfResidence, filingStatus } = financialProfile;
   const plans = {};
 
-  // --- STANDARD PLANS ---
+  // --- STANDARD & LEGACY PLANS (Grandfathered for current borrowers) ---
 
-  // 10-Year Standard Plan
   const standardMonthly = calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, 10);
   plans['10-Year Standard'] = { 
     monthlyPayment: standardMonthly, 
@@ -335,38 +291,17 @@ export const calculatePlans = (financialProfile, loans) => {
     payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)) 
   };
 
-  // Graduated Repayment Plan (simplified)
-  plans['Graduated'] = { 
-    monthlyPayment: `Starts at ~$${(standardMonthly * 0.75).toFixed(2)}, increases every 2 years`, 
-    totalPaid: standardMonthly * 120 * 1.1, 
-    totalInterest: (standardMonthly * 120 * 1.1) - totalFederalBalance,
-    payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)) 
+  [cite_start]// Standardized Repayment Plan (for new borrowers post-July 1, 2026, if they fail to select a plan) [cite: 139]
+  const getStandardizedTerm = (balance) => {
+    if (balance < 25000) return 10;
+    // Note: The article is not exhaustive on tiers, this is an interpretation.
+    if (balance < 40000) return 15;
+    if (balance < 100000) return 20;
+    return 25;
   };
-
-  // Extended Repayment Plan (requires $30k+ balance)
-  if (totalFederalBalance >= 30000) {
-    const extendedMonthly = calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, 25);
-    plans['Extended'] = { 
-      monthlyPayment: extendedMonthly, 
-      totalPaid: extendedMonthly * 300, 
-      totalInterest: (extendedMonthly * 300) - totalFederalBalance,
-      payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 25)) 
-    };
-  }
-  
-  // Standardized Tiered Plan (term based on balance)
-  const getStandardizedTieredTerm = (balance) => {
-    if (balance < 7500) return 10;
-    if (balance < 10000) return 12;
-    if (balance < 20000) return 15;
-    if (balance < 40000) return 20;
-    if (balance < 60000) return 25;
-    return 30;
-  };
-  
-  const tieredTerm = getStandardizedTieredTerm(totalFederalBalance);
+  const tieredTerm = getStandardizedTerm(totalFederalBalance);
   const tieredMonthly = calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, tieredTerm);
-  plans['Standardized Tiered Plan'] = { 
+  plans['Standardized Repayment'] = { 
     monthlyPayment: tieredMonthly, 
     totalPaid: tieredMonthly * tieredTerm * 12, 
     totalInterest: (tieredMonthly * tieredTerm * 12) - totalFederalBalance,
@@ -374,96 +309,86 @@ export const calculatePlans = (financialProfile, loans) => {
   };
 
   // --- INCOME-DRIVEN REPAYMENT (IDR) PLANS ---
-
-  // Old IBR (15% payment, 25-year forgiveness, 150% poverty line)
-  const oldIbrResult = simulateIDR({ 
-    principal: totalFederalBalance, 
-    annualRate: weightedAverageRate, 
-    forgivenessYears: 25, 
-    initialAgi: agi, 
-    familySize, 
-    stateOfResidence, 
-    povertyMultiplier: 1.5, 
-    paymentPercentage: 0.15, 
-    standardPaymentCap: standardMonthly 
-  });
-  plans['Old IBR'] = { ...oldIbrResult, isIdr: true };
   
-  // New IBR (10% payment, 20-year forgiveness, 150% poverty line)
-  const newIbrResult = simulateIDR({ 
+  [cite_start]// SAVE Plan (Judicially Blocked) [cite: 31]
+  const saveResult = simulateLegacyIDR({ 
     principal: totalFederalBalance, 
     annualRate: weightedAverageRate, 
     forgivenessYears: 20, 
     initialAgi: agi, 
     familySize, 
     stateOfResidence, 
-    povertyMultiplier: 1.5, 
-    paymentPercentage: 0.10, 
+    povertyMultiplier: 2.25, // SAVE's more generous poverty exclusion
+    paymentPercentage: 0.05, // Using 5% for undergrad debt as most generous case
     standardPaymentCap: standardMonthly 
   });
-  plans['New IBR'] = { ...newIbrResult, isIdr: true };
+  plans['SAVE'] = { 
+    ...saveResult, 
+    totalInterest: saveResult.totalPaid - totalFederalBalance,
+    isIdr: true, 
+    status: 'Judicially Blocked',
+    [cite_start]sunset: new Date('2028-07-01T00:00:00Z') // [cite: 128]
+  };
   
-  // PAYE (10% payment, 20-year forgiveness, 150% poverty line, sunsets 2028)
-  const payeResult = simulateIDR({ 
-    principal: totalFederalBalance, 
-    annualRate: weightedAverageRate, 
-    forgivenessYears: 20, 
-    initialAgi: agi, 
-    familySize, 
-    stateOfResidence, 
-    povertyMultiplier: 1.5, 
-    paymentPercentage: 0.10, 
-    standardPaymentCap: standardMonthly 
+  [cite_start]// Old IBR (for borrowers before July 1, 2014) [cite: 161]
+  [cite_start]// NOTE: Partial Financial Hardship requirement was eliminated July 4, 2025 [cite: 157]
+  const oldIbrResult = simulateLegacyIDR({ 
+    principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 25, 
+    initialAgi: agi, familySize, stateOfResidence, 
+    povertyMultiplier: 1.5, paymentPercentage: 0.15, standardPaymentCap: standardMonthly 
   });
-  plans['PAYE'] = { ...payeResult, isIdr: true, sunset: new Date('2028-07-01') };
+  plans['Old IBR'] = { ...oldIbrResult, totalInterest: oldIbrResult.totalPaid - totalFederalBalance, isIdr: true };
+  
+  [cite_start]// New IBR (for borrowers on or after July 1, 2014) [cite: 161]
+  const newIbrResult = simulateLegacyIDR({ 
+    principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 20, 
+    initialAgi: agi, familySize, stateOfResidence, 
+    povertyMultiplier: 1.5, paymentPercentage: 0.10, standardPaymentCap: standardMonthly 
+  });
+  plans['New IBR'] = { ...newIbrResult, totalInterest: newIbrResult.totalPaid - totalFederalBalance, isIdr: true };
+  
+  [cite_start]// PAYE (Sunsetting July 1, 2028) [cite: 128]
+  const payeResult = simulateLegacyIDR({ 
+    principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 20, 
+    initialAgi: agi, familySize, stateOfResidence, 
+    povertyMultiplier: 1.5, paymentPercentage: 0.10, standardPaymentCap: standardMonthly 
+  });
+  plans['PAYE'] = { ...payeResult, totalInterest: payeResult.totalPaid - totalFederalBalance, isIdr: true, sunset: new Date('2028-07-01T00:00:00Z') };
 
-  // RAP (Repayment Assistance Plan - tiered payment, 30-year forgiveness)
+  [cite_start]// Repayment Assistance Plan (RAP) - The new default IDR plan under H.R. 1 [cite: 92]
   const rapResult = simulateRAP({ 
-    principal: totalFederalBalance, 
-    annualRate: weightedAverageRate, 
-    initialAgi: agi, 
-    familySize, 
-    stateOfResidence, 
-    filingStatus, 
-    standardPaymentCap: standardMonthly 
+    principal: totalFederalBalance, annualRate: weightedAverageRate,
+    initialAgi: agi, familySize, filingStatus, 
   });
-  plans['RAP'] = { ...rapResult, isIdr: true };
+  plans['RAP'] = { ...rapResult, totalInterest: rapResult.totalPaid - totalFederalBalance, isIdr: true };
   
-  // ICR (20% payment, 25-year forgiveness, 100% poverty line, sunsets 2028)
-  const icrMonthly = Math.min(
-    (calculateDiscretionaryIncome(agi, familySize, stateOfResidence, 1.0) * 0.20) / 12,
-    calculateAmortizedPayment(totalFederalBalance, weightedAverageRate, 12)
-  );
-  const icrResult = simulateIDR({ 
-    principal: totalFederalBalance, 
-    annualRate: weightedAverageRate, 
-    forgivenessYears: 25, 
-    initialAgi: agi, 
-    familySize, 
-    stateOfResidence, 
-    povertyMultiplier: 1.0, 
-    paymentPercentage: 0.20, 
-    standardPaymentCap: standardMonthly 
+  [cite_start]// ICR (Sunsetting July 1, 2028) [cite: 128]
+  const icrResult = simulateLegacyIDR({ 
+    principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 25, 
+    initialAgi: agi, familySize, stateOfResidence, 
+    povertyMultiplier: 1.0, paymentPercentage: 0.20, standardPaymentCap: standardMonthly 
   });
   plans['ICR'] = { 
     ...icrResult, 
-    monthlyPayment: Math.min(icrMonthly, standardMonthly), 
+    totalInterest: icrResult.totalPaid - totalFederalBalance,
+    monthlyPayment: Math.min(icrResult.monthlyPayment, standardMonthly), 
     isIdr: true, 
-    sunset: new Date('2028-07-01')
+    sunset: new Date('2028-07-01T00:00:00Z')
   };
 
   return plans;
 };
+
 // --- PRIVATE LOAN CALCULATIONS ---
 
-// Helper function to run the simulation (MOVED OUTSIDE to fix ESLint error)
-const runSimulation = (monthlyPayment, loansWithPayments, totalOriginalBalance) => {
+// Helper function to run the simulation for private loans
+const runPrivateSimulation = (monthlyPayment, loansWithPayments, totalOriginalBalance) => {
   const loans = loansWithPayments.map(l => ({ ...l, currentBalance: l.balance }));
-  const sortedLoans = [...loans].sort((a, b) => b.annualRate - a.annualRate);
+  const sortedLoans = [...loans].sort((a, b) => b.annualRate - a.annualRate); // Avalanche method
   
   let month = 0;
   let totalPaid = 0;
-  const maxMonths = 600; // 50 year safety limit
+  const maxMonths = 600; 
   
   while (month < maxMonths) {
     month++;
@@ -481,6 +406,7 @@ const runSimulation = (monthlyPayment, loansWithPayments, totalOriginalBalance) 
       totalPaid += minPay;
     });
     
+    // Apply extra payment to highest interest loan first (Avalanche)
     if (paymentRemaining > 0) {
       for (const loan of sortedLoans) {
         if (paymentRemaining <= 0) break;
@@ -500,13 +426,13 @@ const runSimulation = (monthlyPayment, loansWithPayments, totalOriginalBalance) 
   
   return { monthlyPayment, totalPaid, totalInterest, payoffDate };
 };
+
 /**
- * Calculates private loan payoff using Debt Avalanche, enhanced for both Extra Payment and Target Year modes.
+ * Calculates private loan payoff using Debt Avalanche strategy.
  */
 export const calculatePrivateLoanPayoff = (privateLoans, calcMode, extraPayment = 0, targetYear) => {
   if (!privateLoans || privateLoans.length === 0) return null;
 
-  // --- Shared Setup and Baseline Calculation ---
   let totalOriginalBalance = 0;
   const loansWithPayments = privateLoans.map(loan => {
     const balance = parseFloat(loan.balance);
@@ -514,20 +440,12 @@ export const calculatePrivateLoanPayoff = (privateLoans, calcMode, extraPayment 
     const termYears = parseFloat(loan.term);
     totalOriginalBalance += balance;
     const minPayment = calculateAmortizedPayment(balance, annualRate, termYears);
-    return {
-      id: loan.id,
-      balance,
-      annualRate,
-      monthlyRate: annualRate / 12,
-      minPayment
-    };
+    return { id: loan.id, balance, annualRate, monthlyRate: annualRate / 12, minPayment };
   });
   const totalMinPayment = loansWithPayments.reduce((sum, loan) => sum + loan.minPayment, 0);
 
-  // Calculate baseline results (minimum payments only)
-  const baseline = runSimulation(totalMinPayment, loansWithPayments, totalOriginalBalance);
+  const baseline = runPrivateSimulation(totalMinPayment, loansWithPayments, totalOriginalBalance);
   
-  // --- Mode-Specific Calculations ---
   let finalResult;
   let requiredExtraPayment = null;
 
@@ -544,25 +462,17 @@ export const calculatePrivateLoanPayoff = (privateLoans, calcMode, extraPayment 
     }
     
     requiredExtraPayment = requiredTotalPayment - totalMinPayment;
-    finalResult = runSimulation(requiredTotalPayment, loansWithPayments, totalOriginalBalance);
+    finalResult = runPrivateSimulation(requiredTotalPayment, loansWithPayments, totalOriginalBalance);
 
-  } else { // Default to 'extra' payment mode
+  } else { // 'extra' payment mode
     const totalPayment = totalMinPayment + parseFloat(extraPayment || 0);
-    finalResult = runSimulation(totalPayment, loansWithPayments, totalOriginalBalance);
+    finalResult = runPrivateSimulation(totalPayment, loansWithPayments, totalOriginalBalance);
   }
 
-  // --- Final Output ---
   const savings = {
     interestSaved: baseline.totalInterest - finalResult.totalInterest,
     monthsSaved: Math.round((baseline.payoffDate - finalResult.payoffDate) / (1000 * 60 * 60 * 24 * 30.44))
   };
-  savings.yearsSaved = Math.floor(savings.monthsSaved / 12);
-  savings.remainingMonths = savings.monthsSaved % 12;
 
-  return {
-    baseline,
-    accelerated: finalResult,
-    savings,
-    requiredExtraPayment,
-  };
+  return { baseline, accelerated: finalResult, savings, requiredExtraPayment };
 };
