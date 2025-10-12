@@ -398,16 +398,21 @@ const runPrivateSimulation = (monthlyPayment, loansWithPayments, totalOriginalBa
     const remainingLoans = sortedLoans.filter(l => l.currentBalance > 0);
     if (remainingLoans.length === 0) break;
     
-    remainingLoans.forEach(l => { l.currentBalance += l.currentBalance * l.monthlyRate; });
+    // FIX for no-loop-func: Replaced forEach with a for...of loop
+    for (const l of remainingLoans) {
+      l.currentBalance += l.currentBalance * l.monthlyRate;
+    }
     
     let paymentRemaining = monthlyPayment;
-    sortedLoans.forEach(l => {
-      if (l.currentBalance <= 0) return;
+
+    // FIX for no-loop-func: Replaced forEach with a for...of loop
+    for (const l of sortedLoans) {
+      if (l.currentBalance <= 0) continue; // Use 'continue' instead of 'return'
       const minPay = Math.min(l.minPayment, l.currentBalance);
       l.currentBalance -= minPay;
       paymentRemaining -= minPay;
       totalPaid += minPay;
-    });
+    }
     
     // Apply extra payment to highest interest loan first (Avalanche)
     if (paymentRemaining > 0) {
