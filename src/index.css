@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 /* Base Styles for The Payoff Climb Calculator */
 * {
   box-sizing: border-box;
@@ -24,4 +25,8 @@ code {
 
 #root {
   min-height: 100vh;
+}
+/* Tailwind test utility */
+.test-tailwind {
+  @apply bg-blue-500 text-white p-4 rounded-lg;
 }
