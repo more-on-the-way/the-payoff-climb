@@ -456,6 +456,51 @@ export const calculatePlans = (financialProfile, loans) => {
 
 // --- PRIVATE LOAN CALCULATIONS ---
 
+// Helper function to run the simulation
+const runSimulation = (monthlyPayment, loansWithPayments, totalOriginalBalance) => {
+  const loans = loansWithPayments.map(l => ({ ...l, currentBalance: l.balance }));
+  const sortedLoans = [...loans].sort((a, b) => b.annualRate - a.annualRate);
+  
+  let month = 0;
+  let totalPaid = 0;
+  const maxMonths = 600; // 50 year safety limit
+  
+  while (month < maxMonths) {
+    month++;
+    const remainingLoans = sortedLoans.filter(l => l.currentBalance > 0);
+    if (remainingLoans.length === 0) break;
+    
+    remainingLoans.forEach(l => { l.currentBalance += l.currentBalance * l.monthlyRate; });
+    
+    let paymentRemaining = monthlyPayment;
+    sortedLoans.forEach(l => {
+      if (l.currentBalance <= 0) return;
+      const minPay = Math.min(l.minPayment, l.currentBalance);
+      l.currentBalance -= minPay;
+      paymentRemaining -= minPay;
+      totalPaid += minPay;
+    });
+    
+    if (paymentRemaining > 0) {
+      for (const loan of sortedLoans) {
+        if (paymentRemaining <= 0) break;
+        if (loan.currentBalance > 0) {
+          const extraPay = Math.min(paymentRemaining, loan.currentBalance);
+          loan.currentBalance -= extraPay;
+          paymentRemaining -= extraPay;
+          totalPaid += extraPay;
+        }
+      }
+    }
+  }
+  
+  const payoffDate = new Date();
+  payoffDate.setMonth(payoffDate.getMonth() + month - 1);
+  const totalInterest = totalPaid - totalOriginalBalance;
+  
+  return { monthlyPayment, totalPaid, totalInterest, payoffDate };
+};
+
 /**
  * Calculates private loan payoff using Debt Avalanche, enhanced for both Extra Payment and Target Year modes.
  */
@@ -480,53 +525,8 @@ export const calculatePrivateLoanPayoff = (privateLoans, calcMode, extraPayment 
   });
   const totalMinPayment = loansWithPayments.reduce((sum, loan) => sum + loan.minPayment, 0);
 
-  // Helper function to run the simulation
-  const runSimulation = (monthlyPayment) => {
-    const loans = loansWithPayments.map(l => ({ ...l, currentBalance: l.balance }));
-    const sortedLoans = [...loans].sort((a, b) => b.annualRate - a.annualRate);
-    
-    let month = 0;
-    let totalPaid = 0;
-    const maxMonths = 600; // 50 year safety limit
-    
-    while (month < maxMonths) {
-      month++;
-      const remainingLoans = sortedLoans.filter(l => l.currentBalance > 0);
-      if (remainingLoans.length === 0) break;
-      
-      remainingLoans.forEach(l => { l.currentBalance += l.currentBalance * l.monthlyRate; });
-      
-      let paymentRemaining = monthlyPayment;
-      sortedLoans.forEach(l => {
-        if (l.currentBalance <= 0) return;
-        const minPay = Math.min(l.minPayment, l.currentBalance);
-        l.currentBalance -= minPay;
-        paymentRemaining -= minPay;
-        totalPaid += minPay;
-      });
-      
-      if (paymentRemaining > 0) {
-        for (const loan of sortedLoans) {
-          if (paymentRemaining <= 0) break;
-          if (loan.currentBalance > 0) {
-            const extraPay = Math.min(paymentRemaining, loan.currentBalance);
-            loan.currentBalance -= extraPay;
-            paymentRemaining -= extraPay;
-            totalPaid += extraPay;
-          }
-        }
-      }
-    }
-    
-    const payoffDate = new Date();
-    payoffDate.setMonth(payoffDate.getMonth() + month - 1);
-    const totalInterest = totalPaid - totalOriginalBalance;
-    
-    return { monthlyPayment, totalPaid, totalInterest, payoffDate };
-  };
-
   // Calculate baseline results (minimum payments only)
-  const baseline = runSimulation(totalMinPayment);
+  const baseline = runSimulation(totalMinPayment, loansWithPayments, totalOriginalBalance);
   
   // --- Mode-Specific Calculations ---
   let finalResult;
@@ -545,11 +545,11 @@ export const calculatePrivateLoanPayoff = (privateLoans, calcMode, extraPayment 
     }
     
     requiredExtraPayment = requiredTotalPayment - totalMinPayment;
-    finalResult = runSimulation(requiredTotalPayment);
+    finalResult = runSimulation(requiredTotalPayment, loansWithPayments, totalOriginalBalance);
 
   } else { // Default to 'extra' payment mode
     const totalPayment = totalMinPayment + parseFloat(extraPayment || 0);
-    finalResult = runSimulation(totalPayment);
+    finalResult = runSimulation(totalPayment, loansWithPayments, totalOriginalBalance);
   }
 
   // --- Final Output ---
