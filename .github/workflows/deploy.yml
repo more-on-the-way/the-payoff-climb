@@ -20,6 +20,10 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # This is the new step you are adding
+      - name: Clear ESLint cache
+        run: rm -rf node_modules/.cache
+
       - name: Build
         run: npm run build
 
