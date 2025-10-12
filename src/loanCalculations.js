@@ -97,7 +97,7 @@ function simulateLegacyIDR({
 }
 
 /**
- * [cite_start]Simulates the new Repayment Assistance Plan (RAP) as defined by H.R. 1. [cite: 92]
+ * Simulates the new Repayment Assistance Plan (RAP) as defined by H.R. 1.
  * This model is completely overhauled to reflect the new law's rules.
  */
 function simulateRAP({ 
@@ -111,9 +111,9 @@ function simulateRAP({
   let totalPaid = 0;
   let currentAgi = initialAgi;
   const monthlyRate = annualRate / 12;
-  const forgivenessMonths = 360; [cite_start]// RAP forgiveness is 30 years [cite: 119]
+  const forgivenessMonths = 360; // RAP forgiveness is 30 years
 
-  [cite_start]// Helper to calculate annual RAP payment based on tiered AGI structure [cite: 107]
+  // Helper to calculate annual RAP payment based on tiered AGI structure
   const getRAPAnnualPayment = (agi) => {
     if (agi <= 10000) return 120;
     if (agi <= 20000) return agi * 0.01;
@@ -133,8 +133,8 @@ function simulateRAP({
     : Math.max(0, familySize - 2);
   
   // Calculate initial payment for display
-  const initialAnnualPayment = getRAPAnnualPayment(initialAgi) - (dependents * 50); [cite_start]// [cite: 105]
-  const initialMonthlyPayment = Math.max(10, initialAnnualPayment / 12); [cite_start]// Minimum payment is $10 [cite: 119]
+  const initialAnnualPayment = getRAPAnnualPayment(initialAgi) - (dependents * 50); //
+  const initialMonthlyPayment = Math.max(10, initialAnnualPayment / 12); // Minimum payment is $10
 
   for (let month = 1; month <= forgivenessMonths; month++) {
     if (balance <= 0) {
@@ -153,7 +153,7 @@ function simulateRAP({
     const interest = balance * monthlyRate;
     const principalBeforePayment = balance;
 
-    [cite_start]// RAP Interest Subsidy: Unpaid interest is not charged [cite: 119]
+    // RAP Interest Subsidy: Unpaid interest is not charged
     if (monthlyPayment < interest) {
       // Balance does not increase
     } else {
@@ -164,7 +164,7 @@ function simulateRAP({
     balance -= paymentApplied;
     totalPaid += paymentApplied;
     
-    [cite_start]// RAP Principal Matching ($50 Rule) [cite: 119]
+    // RAP Principal Matching ($50 Rule)
     const principalPaid = principalBeforePayment - balance + (monthlyPayment < interest ? interest : 0);
     if (principalPaid < 50) {
       const shortfall = 50 - principalPaid;
@@ -291,7 +291,7 @@ export const calculatePlans = (financialProfile, loans) => {
     payoffDate: new Date(new Date().setFullYear(new Date().getFullYear() + 10)) 
   };
 
-  [cite_start]// Standardized Repayment Plan (for new borrowers post-July 1, 2026, if they fail to select a plan) [cite: 139]
+  // Standardized Repayment Plan (for new borrowers post-July 1, 2026, if they fail to select a plan)
   const getStandardizedTerm = (balance) => {
     if (balance < 25000) return 10;
     // Note: The article is not exhaustive on tiers, this is an interpretation.
@@ -310,7 +310,7 @@ export const calculatePlans = (financialProfile, loans) => {
 
   // --- INCOME-DRIVEN REPAYMENT (IDR) PLANS ---
   
-  [cite_start]// SAVE Plan (Judicially Blocked) [cite: 31]
+  // SAVE Plan (Judicially Blocked)
   const saveResult = simulateLegacyIDR({ 
     principal: totalFederalBalance, 
     annualRate: weightedAverageRate, 
@@ -327,11 +327,11 @@ export const calculatePlans = (financialProfile, loans) => {
     totalInterest: saveResult.totalPaid - totalFederalBalance,
     isIdr: true, 
     status: 'Judicially Blocked',
-    [cite_start]sunset: new Date('2028-07-01T00:00:00Z') // [cite: 128]
+    sunset: new Date('2028-07-01T00:00:00Z') //
   };
   
-  [cite_start]// Old IBR (for borrowers before July 1, 2014) [cite: 161]
-  [cite_start]// NOTE: Partial Financial Hardship requirement was eliminated July 4, 2025 [cite: 157]
+  // Old IBR (for borrowers before July 1, 2014)
+  // NOTE: Partial Financial Hardship requirement was eliminated July 4, 2025
   const oldIbrResult = simulateLegacyIDR({ 
     principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 25, 
     initialAgi: agi, familySize, stateOfResidence, 
@@ -339,7 +339,7 @@ export const calculatePlans = (financialProfile, loans) => {
   });
   plans['Old IBR'] = { ...oldIbrResult, totalInterest: oldIbrResult.totalPaid - totalFederalBalance, isIdr: true };
   
-  [cite_start]// New IBR (for borrowers on or after July 1, 2014) [cite: 161]
+  // New IBR (for borrowers on or after July 1, 2014)
   const newIbrResult = simulateLegacyIDR({ 
     principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 20, 
     initialAgi: agi, familySize, stateOfResidence, 
@@ -347,7 +347,7 @@ export const calculatePlans = (financialProfile, loans) => {
   });
   plans['New IBR'] = { ...newIbrResult, totalInterest: newIbrResult.totalPaid - totalFederalBalance, isIdr: true };
   
-  [cite_start]// PAYE (Sunsetting July 1, 2028) [cite: 128]
+  // PAYE (Sunsetting July 1, 2028)
   const payeResult = simulateLegacyIDR({ 
     principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 20, 
     initialAgi: agi, familySize, stateOfResidence, 
@@ -355,7 +355,7 @@ export const calculatePlans = (financialProfile, loans) => {
   });
   plans['PAYE'] = { ...payeResult, totalInterest: payeResult.totalPaid - totalFederalBalance, isIdr: true, sunset: new Date('2028-07-01T00:00:00Z') };
 
-  [cite_start]// Repayment Assistance Plan (RAP) - The new default IDR plan under H.R. 1 [cite: 92]
+  // Repayment Assistance Plan (RAP) - The new default IDR plan under H.R. 1
   const rapResult = simulateRAP({
     principal: totalFederalBalance,
     annualRate: weightedAverageRate,
@@ -365,7 +365,7 @@ export const calculatePlans = (financialProfile, loans) => {
   });
   plans['RAP'] = { ...rapResult, totalInterest: rapResult.totalPaid - totalFederalBalance, isIdr: true };
   
-  [cite_start]// ICR (Sunsetting July 1, 2028) [cite: 128]
+  // ICR (Sunsetting July 1, 2028)
   const icrResult = simulateLegacyIDR({ 
     principal: totalFederalBalance, annualRate: weightedAverageRate, forgivenessYears: 25, 
     initialAgi: agi, familySize, stateOfResidence, 
