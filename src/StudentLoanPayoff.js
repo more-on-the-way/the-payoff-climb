@@ -1,9 +1,37 @@
-// Phase 5 Part 1: Professional Redesign - Brand Color Implementation
-// Updated: 10/11/2025
-// Changes: Applied brand color palette (bg-brand-background, bg-brand-blue, focus states)
+// Updated: 10/12/2025
+// Changes: Added full list of US states to dropdown menu.
 import React, { useState, useMemo } from 'react';
 import { PlusCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment, calculateAcceleratedPayoff, calculateTargetYearPayment } from './loanCalculations';
+
+const usStates = [
+  { value: 'AL', label: 'Alabama' }, { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' }, { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' }, { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' }, { value: 'DE', label: 'Delaware' },
+  { value: 'FL', label: 'Florida' }, { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' }, { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' }, { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' }, { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' }, { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' }, { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' }, { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' }, { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' }, { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' }, { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' }, { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' }, { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' }, { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' }, { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' }, { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' }, { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' }, { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' }, { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' }, { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' }, { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' }, { value: 'WY', label: 'Wyoming' }
+];
+
 // --- Reusable UI Components ---
 const Card = ({ children, className = '', ...props }) => (
   <div className={`bg-white rounded-2xl shadow-lg p-6 sm:p-8 ${className}`} {...props}>
@@ -28,7 +56,7 @@ const Select = ({ label, id, children, ...props }) => (
 );
 
 const ResultsCard = ({ title, plan, warning }) => {
-  const formatCurrency = (num) => typeof num === 'number' ? `${num.toFixed(2)}` : num;
+  const formatCurrency = (num) => typeof num === 'number' ? `$${num.toFixed(2)}` : num;
   const formatDate = (date) => date ? date.toLocaleDateString() : 'N/A';
 
   const dateToUse = plan.isIdr ? (plan.forgivenessDate || plan.payoffDate) : plan.payoffDate;
@@ -37,6 +65,7 @@ const ResultsCard = ({ title, plan, warning }) => {
   return (
     <div className="bg-gray-50 rounded-lg p-4 border flex flex-col">
       <h3 className="font-bold text-lg text-brand-blue-dark">{title}</h3>
+      {plan.status && <p className="text-xs font-bold text-brand-red my-1">{plan.status}</p>}
       {warning && <p className="text-xs text-brand-amber-dark my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
       <div className="mt-2 space-y-1 text-sm flex-grow">
         <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
@@ -226,7 +255,7 @@ export default function StudentLoanPayoff() {
 
     if (isNewBorrower || contaminationTriggered) {
       if (allPlans['RAP']) filteredPlans['RAP'] = allPlans['RAP'];
-      if (allPlans['Standardized Tiered Plan']) filteredPlans['Standardized Tiered Plan'] = allPlans['Standardized Tiered Plan'];
+      if (allPlans['Standardized Repayment']) filteredPlans['Standardized Repayment'] = allPlans['Standardized Repayment'];
       return { plans: filteredPlans, contaminationWarning: contaminationTriggered };
     }
 
@@ -390,11 +419,9 @@ export default function StudentLoanPayoff() {
               value={stateOfResidence} 
               onChange={(e) => setStateOfResidence(e.target.value)}
             >
-              <option value="AL">Alabama</option>
-              <option value="AK">Alaska</option>
-              {/* ... other states ... */}
-              <option value="WI">Wisconsin</option>
-              <option value="WY">Wyoming</option>
+              {usStates.map(state => (
+                <option key={state.value} value={state.value}>{state.label}</option>
+              ))}
             </Select>
             <Select 
               label="Filing Status" 
@@ -412,14 +439,14 @@ export default function StudentLoanPayoff() {
         {/* Loan Input */}
         <Card>
           <div className="flex justify-between items-center mb-4">
-  <h2 className="text-2xl font-semibold text-gray-800">Your Loans</h2>
-  <button 
-    onClick={addLoan} 
-    className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-brand-blue-dark transition"
-  >
-    <PlusCircle size={20} /> Add Loan
-  </button>
-</div>
+            <h2 className="text-2xl font-semibold text-gray-800">Your Loans</h2>
+            <button 
+              onClick={addLoan} 
+              className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-brand-blue-dark transition"
+            >
+              <PlusCircle size={20} /> Add Loan
+            </button>
+          </div>
           <div className="space-y-6">
             {loans.length === 0 && (
               <p className="text-gray-500 text-center py-4">Add a loan to get started.</p>
