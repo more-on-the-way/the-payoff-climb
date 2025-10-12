@@ -1,7 +1,7 @@
 // Updated: 10/12/2025
 // Phase 5, Step 3: Implement Advanced Visualizations.
 import React, { useState, useMemo } from 'react';
-import { PlusCircle, XCircle, AlertTriangle, ChevronsRight, CalendarClock, Download } from 'lucide-react';
+import { PlusCircle, XCircle, AlertTriangle, ChevronsRight, Download } from 'lucide-react';
 import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment, calculateAcceleratedPayoff, calculateTargetYearPayment, generateAmortizationSchedule } from './loanCalculations';
 
 const usStates = [
