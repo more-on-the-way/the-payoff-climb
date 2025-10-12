@@ -4,7 +4,9 @@
 // ============================================================================
 
 // --- UTILITY FUNCTIONS ---
-<div className="test-tailwind">Tailwind Utility Test: If this box is blue with white text, Tailwind is working!</div>
+<div className="test-tailwind">
+  Tailwind Utility Test: If this box is blue with white text, Tailwind is working!
+</div>
 /**
  * Get federal poverty guideline based on family size and state
  * Uses 2024 poverty guidelines with Alaska/Hawaii adjustments
