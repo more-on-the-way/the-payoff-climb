@@ -358,7 +358,7 @@ export const calculatePlans = (financialProfile, loans) => {
   [cite_start]// Repayment Assistance Plan (RAP) - The new default IDR plan under H.R. 1 [cite: 92]
   const rapResult = simulateRAP({ 
     principal: totalFederalBalance, annualRate: weightedAverageRate,
-    initialAgi: agi, familySize, filingStatus, 
+    initialAgi: agi, familySize, filingStatus 
   });
   plans['RAP'] = { ...rapResult, totalInterest: rapResult.totalPaid - totalFederalBalance, isIdr: true };
   
