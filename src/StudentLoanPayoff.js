@@ -188,7 +188,7 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
   return (
     <div className="mt-6 bg-white rounded-lg p-5 border-2 border-blue-600/30">
       <h4 className="font-bold text-brand-blue-dark mb-6 text-center">Debt-Free Timeline</h4>
-      <div className="relative w-full h-2 bg-gray-200 rounded-full mb-8">
+      <div className="relative w-full h-3 bg-gray-300 rounded-full mb-8 shadow-inner">
         <div 
           className="absolute h-2 bg-brand-green rounded-full" 
           style={{width: `${acceleratedPosition}%`}}
