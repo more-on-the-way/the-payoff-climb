@@ -1,6 +1,5 @@
 // Updated: 10/12/2025
 // Phase 5, Step 3: Implement Advanced Visualizations.
-import '@fontsource/atkinson-hyperlegible';
 import React, { useState, useMemo } from 'react';
 import { PlusCircle, XCircle, AlertTriangle, ChevronsRight, Download } from 'lucide-react';
 import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment, calculateAcceleratedPayoff, calculateTargetYearPayment, generateAmortizationSchedule } from './loanCalculations';
