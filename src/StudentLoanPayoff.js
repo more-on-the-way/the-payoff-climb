@@ -682,7 +682,18 @@ export default function StudentLoanPayoff() {
 
                     <div className="mt-6 text-center">
                       <button 
-                        onClick={() => handleDownloadSchedule(totalFederalBalance, (federalLoans.reduce((acc, loan) => acc + (parseFloat(loan.balance) * parseFloat(loan.rate) / 100),0) / totalFederalBalance), federalAcceleratedResults.accelerated.monthlyPayment, 'federal-loan-schedule.csv')}
+                        onClick={() => {
+  const weightedAvgRate = federalLoans.reduce(
+    (acc, loan) => acc + (parseFloat(loan.balance) * (parseFloat(loan.rate) / 100)),
+    0
+  ) / totalFederalBalance;
+  handleDownloadSchedule(
+    totalFederalBalance, 
+    weightedAvgRate,
+    federalAcceleratedResults.accelerated.monthlyPayment, 
+    'federal-loan-schedule.csv'
+  );
+}}
                         className="flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 text-sm bg-gray-200 text-brand-blue-dark font-semibold rounded-lg hover:bg-gray-300 transition"
                       >
                         <Download size={16} /> Download Full Schedule
@@ -782,7 +793,18 @@ export default function StudentLoanPayoff() {
                         />
                          <div className="mt-6 text-center">
                           <button 
-                            onClick={() => handleDownloadSchedule(totalPrivateBalance, (privateLoans.reduce((acc, loan) => acc + (loan.balance * loan.annualRate), 0) / totalPrivateBalance), privateLoanResults.accelerated.monthlyPayment, 'private-loan-schedule.csv')}
+                            onClick={() => {
+  const weightedAvgRate = privateLoans.reduce(
+    (acc, loan) => acc + (parseFloat(loan.balance) * (parseFloat(loan.rate) / 100)),
+    0
+  ) / totalPrivateBalance;
+  handleDownloadSchedule(
+    totalPrivateBalance, 
+    weightedAvgRate,
+    privateLoanResults.accelerated.monthlyPayment, 
+    'private-loan-schedule.csv'
+  );
+}}
                             className="flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 text-sm bg-gray-200 text-brand-blue-dark font-semibold rounded-lg hover:bg-gray-300 transition"
                           >
                             <Download size={16} /> Download Full Schedule
