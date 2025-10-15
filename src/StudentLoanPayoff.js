@@ -169,7 +169,6 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
     </div>
   );
 };
-
 // --- NEW: Debt-Free Timeline Component ---
 const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
   const today = new Date();
@@ -192,7 +191,7 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
       <div className="relative w-full h-2 bg-gray-200 rounded-full">
         <div 
           className="absolute h-2 bg-brand-green rounded-full" 
-          style={{width: `${acceleratedPosition}%`}}
+          style={{width: `calc(${acceleratedPosition}% - 8px)`}}
         ></div>
         
         {/* Today */}
