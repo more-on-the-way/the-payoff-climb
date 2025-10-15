@@ -190,7 +190,10 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
     <div className="mt-6 bg-white rounded-lg p-5 border-2 border-brand-blue/30">
       <h4 className="font-bold text-brand-blue-dark mb-6 text-center">Debt-Free Timeline</h4>
       <div className="relative w-full h-2 bg-gray-200 rounded-full">
-        <div className="absolute h-2 bg-brand-green rounded-full" style={{width: `${acceleratedPosition}%`}}></div>
+        <div 
+          className="absolute h-2 bg-brand-green rounded-full" 
+          style={{width: `${acceleratedPosition}%`}}
+        ></div>
         
         {/* Today */}
         <div className="absolute top-0 left-0 -translate-x-1/2">
@@ -215,7 +218,6 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
     </div>
   );
 };
-
 // --- Main Application Component ---
 export default function StudentLoanPayoff() {
   // Financial Profile State
