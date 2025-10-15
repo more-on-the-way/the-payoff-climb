@@ -150,7 +150,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
               )}
             </div>
             <div 
-              className="bg-rose-600 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-brand-red-dark flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${acceleratedInterestPct}%` }}
             >
               {acceleratedInterestPct > 15 && (
@@ -190,7 +190,7 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
       <h4 className="font-bold text-brand-blue-dark mb-6 text-center">Debt-Free Timeline</h4>
       <div className="relative w-full h-2 bg-gray-200 rounded-full mb-8">
         <div 
-          className="absolute h-2 bg-brand-green-light0 rounded-full" 
+          className="absolute h-2 bg-brand-green rounded-full" 
           style={{width: `${acceleratedPosition}%`}}
         ></div>
       </div>
