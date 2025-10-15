@@ -41,14 +41,14 @@ const Card = ({ children, className = '', ...props }) => (
 
 const Input = ({ label, id, ...props }) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <label htmlFor={id} className="block text-sm font-medium text-brand-blue-dark mb-1">{label}</label>
     <input id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600" />
   </div>
 );
 
 const Select = ({ label, id, children, ...props }) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <label htmlFor={id} className="block text-sm font-medium text-brand-blue-dark mb-1">{label}</label>
     <select id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600">
       {children}
     </select>
@@ -63,9 +63,9 @@ const ResultsCard = ({ title, plan, warning }) => {
   const dateLabel = plan.isIdr ? (plan.forgivenessDate ? 'Forgiveness Date:' : 'Payoff Date:') : 'Payoff Date:';
 
   return (
-    <div className="bg-gray-50 rounded-lg p-4 border flex flex-col">
-      <h3 className="font-bold text-lg text-blue-800">{title}</h3>
-      {plan.status && <p className="text-xs font-bold text-rose-500 my-1">{plan.status}</p>}
+    <div className="bg-brand-background rounded-lg p-4 border flex flex-col">
+      <h3 className="font-bold text-lg text-brand-blue-dark">{title}</h3>
+      {plan.status && <p className="text-xs font-bold text-brand-red my-1">{plan.status}</p>}
       {warning && <p className="text-xs text-amber-600 my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
       <div className="mt-2 space-y-1 text-sm flex-grow">
         <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
@@ -96,7 +96,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
   
   return (
     <div className="mt-6 bg-white rounded-lg p-5 border-2 border-blue-600/30">
-      <h4 className="font-bold text-blue-800 mb-4 text-center">Payment Breakdown: Where Your Money Goes</h4>
+      <h4 className="font-bold text-brand-blue-dark mb-4 text-center">Payment Breakdown: Where Your Money Goes</h4>
       
       <div className="flex justify-center gap-6 mb-6 text-sm">
         <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
           <span>Principal (Your Debt)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-rose-500 rounded"></div>
+          <div className="w-4 h-4 bg-brand-red-light0 rounded"></div>
           <span>Interest (Bank Profit)</span>
         </div>
       </div>
@@ -112,7 +112,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
       <div className="space-y-6">
         <div>
           <div className="flex justify-between items-center mb-2">
-            <h5 className="font-semibold text-gray-700 text-sm">Minimum Payments Only</h5>
+            <h5 className="font-semibold text-brand-blue-dark text-sm">Minimum Payments Only</h5>
             <span className="text-xs text-gray-600">Total: ${baselineTotal.toFixed(2)}</span>
           </div>
           <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md">
@@ -125,7 +125,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
               )}
             </div>
             <div 
-              className="bg-rose-500 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-brand-red-light0 flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${baselineInterestPct}%` }}
             >
               {baselineInterestPct > 15 && (
@@ -137,12 +137,12 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
         
         <div>
           <div className="flex justify-between items-center mb-2">
-            <h5 className="font-semibold text-emerald-600 text-sm">{acceleratedLabel}</h5>
+            <h5 className="font-semibold text-brand-green text-sm">{acceleratedLabel}</h5>
             <span className="text-xs text-gray-600">Total: ${acceleratedTotal.toFixed(2)}</span>
           </div>
           <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md border-2 border-emerald-500">
             <div 
-              className="bg-emerald-500 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-brand-green-light0 flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${acceleratedPrincipalPct}%` }}
             >
               {acceleratedPrincipalPct > 15 && (
@@ -161,7 +161,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
         </div>
       </div>
       
-      <div className="mt-4 p-3 bg-emerald-50 rounded-md border border-emerald-500/30">
+      <div className="mt-4 p-3 bg-brand-green-light rounded-md border border-emerald-500/30">
         <p className="text-sm text-emerald-700">
           <span className="font-semibold">💡 Key Insight:</span> By accelerating payments, you reduce the total interest paid to the bank while paying off the same principal amount. Every extra dollar goes directly toward eliminating your debt faster.
         </p>
@@ -187,10 +187,10 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
 
   return (
     <div className="mt-6 bg-white rounded-lg p-5 border-2 border-blue-600/30">
-      <h4 className="font-bold text-blue-800 mb-6 text-center">Debt-Free Timeline</h4>
+      <h4 className="font-bold text-brand-blue-dark mb-6 text-center">Debt-Free Timeline</h4>
       <div className="relative w-full h-2 bg-gray-200 rounded-full mb-8">
         <div 
-          className="absolute h-2 bg-emerald-500 rounded-full" 
+          className="absolute h-2 bg-brand-green-light0 rounded-full" 
           style={{width: `${acceleratedPosition}%`}}
         ></div>
       </div>
@@ -200,7 +200,7 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
         <div className="flex justify-between items-start">
           {/* Today */}
           <div className="text-left">
-            <p className="text-xs font-semibold text-blue-800">Today</p>
+            <p className="text-xs font-semibold text-brand-blue-dark">Today</p>
           </div>
           
           {/* Baseline Payoff */}
@@ -461,17 +461,17 @@ export default function StudentLoanPayoff() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8" style={{ fontFamily: 'Atkinson Hyperlegible, sans-serif' }}>
+    <div className="min-h-screen bg-brand-background p-4 sm:p-6 lg:p-8" style={{ fontFamily: 'Atkinson Hyperlegible, sans-serif' }}>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-blue-800">The Payoff Climb</h1>
+          <h1 className="text-4xl font-bold text-brand-blue-dark">The Payoff Climb</h1>
           <p className="mt-2 text-lg text-gray-600">Your journey to student loan freedom</p>
         </div>
 
         {/* Financial Profile */}
         <Card>
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Your Financial Profile</h2>
+          <h2 className="text-2xl font-semibold text-brand-blue-dark mb-4">Your Financial Profile</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input 
               label="Adjusted Gross Income (AGI)" 
@@ -515,10 +515,10 @@ export default function StudentLoanPayoff() {
         {/* Loan Input */}
         <Card>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold text-gray-800">Your Loans</h2>
+            <h2 className="text-2xl font-semibold text-brand-blue-dark">Your Loans</h2>
             <button 
               onClick={addLoan} 
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-800 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-brand-blue-dark transition"
             >
               <PlusCircle size={20} /> Add Loan
             </button>
@@ -530,13 +530,13 @@ export default function StudentLoanPayoff() {
             {loans.map((loan, index) => (
               <div key={loan.id} className="bg-gray-100 p-4 rounded-lg border">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-semibold text-gray-700">Loan #{index + 1}</h3>
+                  <h3 className="font-semibold text-brand-blue-dark">Loan #{index + 1}</h3>
                   <button onClick={() => removeLoan(loan.id)} className="text-red-600 hover:text-red-800"><XCircle size={20} /></button>
                 </div>
                 {!loan.type ? (
                   <div className="flex gap-4">
-                    <button onClick={() => updateLoan(loan.id, 'type', 'Federal')} className="flex-1 py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50">Federal Loan</button>
-                    <button onClick={() => updateLoan(loan.id, 'type', 'Private')} className="flex-1 py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50">Private Loan</button>
+                    <button onClick={() => updateLoan(loan.id, 'type', 'Federal')} className="flex-1 py-2 px-4 border border-gray-300 rounded-md hover:bg-brand-background">Federal Loan</button>
+                    <button onClick={() => updateLoan(loan.id, 'type', 'Private')} className="flex-1 py-2 px-4 border border-gray-300 rounded-md hover:bg-brand-background">Private Loan</button>
                   </div>
                 ) : loan.type === 'Federal' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -563,8 +563,8 @@ export default function StudentLoanPayoff() {
 
         {/* Contamination Warning Question */}
         {showContaminationQuestion && (
-          <Card className="bg-amber-50 border border-amber-500/50">
-            <h3 className="font-semibold text-gray-800 mb-2">Future Federal Loans</h3>
+          <Card className="bg-brand-amber-light border border-amber-500/50">
+            <h3 className="font-semibold text-brand-blue-dark mb-2">Future Federal Loans</h3>
             <p className="text-sm text-gray-600 mb-4">This question is required because you have loans from before July 1, 2026.</p>
             <Select label="Are you planning to take out any new federal loans on or after July 1, 2026?" id="contamination-check" value={plansToTakeNewLoan || ''} onChange={(e) => setPlansToTakeNewLoan(e.target.value)}>
               <option value="">Please select an option</option>
@@ -578,11 +578,11 @@ export default function StudentLoanPayoff() {
         {federalLoans.length > 0 && Object.keys(eligiblePlans.plans).length > 0 && (
           <Card>
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800">Federal Loan Repayment Plans</h2>
+              <h2 className="text-2xl font-semibold text-brand-blue-dark">Federal Loan Repayment Plans</h2>
               <p className="text-sm text-gray-600">Based on a total federal balance of ${totalFederalBalance.toLocaleString()}</p>
             </div>
             {eligiblePlans.contaminationWarning && (
-              <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-600 p-4 mb-6 rounded-md flex items-center gap-3">
+              <div className="bg-brand-red-light border-l-4 border-rose-500 text-rose-600 p-4 mb-6 rounded-md flex items-center gap-3">
                 <AlertTriangle size={24} />
                 <div>
                   <h3 className="font-bold">Important Warning</h3>
@@ -601,22 +601,22 @@ export default function StudentLoanPayoff() {
         {/* Federal Loan Acceleration Strategy */}
         {federalLoans.length > 0 && allFederalPlans.length > 0 && (
           <Card>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Federal Loan Acceleration Strategy</h2>
+            <h2 className="text-2xl font-semibold text-brand-blue-dark mb-2">Federal Loan Acceleration Strategy</h2>
             <p className="text-sm text-gray-600 mb-6">See how extra payments or a target payoff year can help you become debt-free faster.</p>
             
             {!showFederalStrategy ? (
               <div className="text-center mt-4">
                 <button 
                   onClick={() => setShowFederalStrategy(true)} 
-                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-800 transition"
+                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-brand-blue text-white font-semibold rounded-lg shadow-md hover:bg-brand-blue-dark transition"
                 >
                   Analyze Payoff Strategies <ChevronsRight size={20} />
                 </button>
               </div>
             ) : (
-              <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-500/30">
+              <div className="bg-brand-green-light p-6 rounded-xl border border-emerald-500/30">
                 <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">Calculate based on:</p>
+                  <p className="text-sm font-semibold text-brand-blue-dark mb-3">Calculate based on:</p>
                   <div className="space-y-2">
                     <label className="flex items-center cursor-pointer"><input type="radio" name="federalCalcMode" value="extra" checked={federalCalcMode === 'extra'} onChange={(e) => setFederalCalcMode(e.target.value)} className="mr-2" /><span className="text-sm">Extra Payment Amount</span></label>
                     <label className="flex items-center cursor-pointer"><input type="radio" name="federalCalcMode" value="target" checked={federalCalcMode === 'target'} onChange={(e) => setFederalCalcMode(e.target.value)} className="mr-2" /><span className="text-sm">Target Payoff Year</span></label>
@@ -636,7 +636,7 @@ export default function StudentLoanPayoff() {
                 </div>
 
                 {federalAcceleratedResults?.error && (
-                  <div className={`p-4 rounded-lg mb-6 ${federalAcceleratedResults.alreadyMeetsTarget ? 'bg-amber-50 border border-amber-500/50 text-amber-800' : 'bg-rose-50 border border-rose-500/50 text-red-800'}`}>
+                  <div className={`p-4 rounded-lg mb-6 ${federalAcceleratedResults.alreadyMeetsTarget ? 'bg-brand-amber-light border border-amber-500/50 text-amber-800' : 'bg-brand-red-light border border-rose-500/50 text-red-800'}`}>
                     <p className="text-sm font-semibold">{federalAcceleratedResults.error}</p>
                   </div>
                 )}
@@ -645,7 +645,7 @@ export default function StudentLoanPayoff() {
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="bg-gray-100 rounded-lg p-4 border border-gray-300">
-                        <h3 className="font-bold text-lg text-gray-700 mb-3">Current Plan</h3>
+                        <h3 className="font-bold text-lg text-brand-blue-dark mb-3">Current Plan</h3>
                         <div className="space-y-2 text-sm">
                           <p><span className="font-semibold">Monthly Payment:</span> ${typeof federalAcceleratedResults.baseline.monthlyPayment === 'number' ? federalAcceleratedResults.baseline.monthlyPayment.toFixed(2) : federalAcceleratedResults.baseline.monthlyPayment}</p>
                           <p><span className="font-semibold">Total Paid:</span> ${federalAcceleratedResults.baseline.totalPaid.toFixed(2)}</p>
@@ -654,7 +654,7 @@ export default function StudentLoanPayoff() {
                         </div>
                       </div>
                       <div className="bg-white rounded-lg p-4 border-2 border-emerald-500">
-                        <h3 className="font-bold text-lg text-emerald-600 mb-3">{federalCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}</h3>
+                        <h3 className="font-bold text-lg text-brand-green mb-3">{federalCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}</h3>
                         <div className="space-y-2 text-sm">
                           <p><span className="font-semibold">Monthly Payment:</span> ${federalAcceleratedResults.accelerated.monthlyPayment.toFixed(2)}</p>
                           <p><span className="font-semibold">Total Paid:</span> ${federalAcceleratedResults.accelerated.totalPaid.toFixed(2)}</p>
@@ -665,11 +665,11 @@ export default function StudentLoanPayoff() {
                     </div>
                     
                     <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
-                      <h4 className="font-bold text-blue-800 mb-2">{federalCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}</h4>
+                      <h4 className="font-bold text-brand-blue-dark mb-2">{federalCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        {federalCalcMode === 'target' && federalAcceleratedResults.requiredExtraPayment && (<p><span className="font-semibold">Required Extra Payment:</span> <span className="text-emerald-600 font-bold">${federalAcceleratedResults.requiredExtraPayment.toFixed(2)}/month</span></p>)}
-                        <p><span className="font-semibold">Interest Saved:</span> <span className="text-emerald-600 font-bold">${(federalAcceleratedResults.baseline.totalInterest - federalAcceleratedResults.accelerated.totalInterest).toFixed(2)}</span></p>
-                        <p><span className="font-semibold">Time Saved:</span> <span className="text-emerald-600 font-bold">
+                        {federalCalcMode === 'target' && federalAcceleratedResults.requiredExtraPayment && (<p><span className="font-semibold">Required Extra Payment:</span> <span className="text-brand-green font-bold">${federalAcceleratedResults.requiredExtraPayment.toFixed(2)}/month</span></p>)}
+                        <p><span className="font-semibold">Interest Saved:</span> <span className="text-brand-green font-bold">${(federalAcceleratedResults.baseline.totalInterest - federalAcceleratedResults.accelerated.totalInterest).toFixed(2)}</span></p>
+                        <p><span className="font-semibold">Time Saved:</span> <span className="text-brand-green font-bold">
                           {Math.floor(Math.abs(federalAcceleratedResults.savings.monthsSaved) / 12)} years, {Math.abs(federalAcceleratedResults.savings.monthsSaved) % 12} months
                         </span></p>
                       </div>
@@ -683,7 +683,7 @@ export default function StudentLoanPayoff() {
                     <div className="mt-6 text-center">
                       <button 
                         onClick={() => handleDownloadSchedule(totalFederalBalance, (federalLoans.reduce((acc, loan) => acc + (parseFloat(loan.balance) * parseFloat(loan.rate) / 100),0) / totalFederalBalance), federalAcceleratedResults.accelerated.monthlyPayment, 'federal-loan-schedule.csv')}
-                        className="flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 text-sm bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition"
+                        className="flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 text-sm bg-gray-200 text-brand-blue-dark font-semibold rounded-lg hover:bg-gray-300 transition"
                       >
                         <Download size={16} /> Download Full Schedule
                       </button>
@@ -691,7 +691,7 @@ export default function StudentLoanPayoff() {
 
                     {federalAcceleratedResults.paidOffBeforeForgiveness && (
                       <div className="bg-blue-100 rounded-lg p-4 border border-blue-300 mt-4">
-                        <p className="text-sm text-blue-800"><span className="font-semibold">Note:</span> You'll pay off your loans before reaching forgiveness eligibility. Your extra payments will save you money and time.</p>
+                        <p className="text-sm text-brand-blue-dark"><span className="font-semibold">Note:</span> You'll pay off your loans before reaching forgiveness eligibility. Your extra payments will save you money and time.</p>
                       </div>
                     )}
                   </div>
@@ -704,7 +704,7 @@ export default function StudentLoanPayoff() {
         {/* Private Loan Payoff Strategy */}
         {privateLoans.length > 0 && (
           <Card>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Private Loan Payoff Strategy</h2>
+            <h2 className="text-2xl font-semibold text-brand-blue-dark mb-2">Private Loan Payoff Strategy</h2>
             <p className="text-sm text-gray-600 mb-2">Based on a total private balance of ${totalPrivateBalance.toLocaleString()}</p>
             <p className="text-sm text-gray-500 mb-6">Strategy: Debt Avalanche (paying highest interest rate first)</p>
 
@@ -712,15 +712,15 @@ export default function StudentLoanPayoff() {
               <div className="text-center mt-4">
                 <button 
                   onClick={() => setShowPrivateStrategy(true)}
-                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-800 transition"
+                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-brand-blue text-white font-semibold rounded-lg shadow-md hover:bg-brand-blue-dark transition"
                 >
                   Analyze Payoff Strategies <ChevronsRight size={20} />
                 </button>
               </div>
             ) : (
-              <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-500/30">
+              <div className="bg-brand-green-light p-6 rounded-xl border border-emerald-500/30">
                 <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">Calculate based on:</p>
+                  <p className="text-sm font-semibold text-brand-blue-dark mb-3">Calculate based on:</p>
                   <div className="space-y-2">
                     <label className="flex items-center cursor-pointer"><input type="radio" name="privateCalcMode" value="extra" checked={privateCalcMode === 'extra'} onChange={(e) => setPrivateCalcMode(e.target.value)} className="mr-2" /><span className="text-sm">Extra Payment Amount</span></label>
                     <label className="flex items-center cursor-pointer"><input type="radio" name="privateCalcMode" value="target" checked={privateCalcMode === 'target'} onChange={(e) => setPrivateCalcMode(e.target.value)} className="mr-2" /><span className="text-sm">Target Payoff Year</span></label>
@@ -734,7 +734,7 @@ export default function StudentLoanPayoff() {
                 )}
 
                 {privateLoanResults?.error && (
-                  <div className={`mt-4 p-4 rounded-lg ${privateLoanResults.alreadyMeetsTarget ? 'bg-amber-50 border border-amber-500/50 text-amber-800' : 'bg-rose-50 border border-rose-500/50 text-red-800'}`}>
+                  <div className={`mt-4 p-4 rounded-lg ${privateLoanResults.alreadyMeetsTarget ? 'bg-brand-amber-light border border-amber-500/50 text-amber-800' : 'bg-brand-red-light border border-rose-500/50 text-red-800'}`}>
                     <p className="text-sm font-semibold">{privateLoanResults.error}</p>
                   </div>
                 )}
@@ -743,7 +743,7 @@ export default function StudentLoanPayoff() {
                   <div className="mt-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="bg-gray-100 rounded-lg p-4 border border-gray-300">
-                        <h3 className="font-bold text-lg text-gray-700 mb-3">Minimum Payments Only</h3>
+                        <h3 className="font-bold text-lg text-brand-blue-dark mb-3">Minimum Payments Only</h3>
                         <div className="space-y-2 text-sm">
                           <p><span className="font-semibold">Monthly Payment:</span> ${privateLoanResults.baseline.monthlyPayment.toFixed(2)}</p>
                           <p><span className="font-semibold">Total Paid:</span> ${privateLoanResults.baseline.totalPaid.toFixed(2)}</p>
@@ -752,7 +752,7 @@ export default function StudentLoanPayoff() {
                         </div>
                       </div>
                       <div className="bg-white rounded-lg p-4 border-2 border-emerald-500">
-                        <h3 className="font-bold text-lg text-emerald-600 mb-3">{privateCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}</h3>
+                        <h3 className="font-bold text-lg text-brand-green mb-3">{privateCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}</h3>
                         <div className="space-y-2 text-sm">
                           <p><span className="font-semibold">Monthly Payment:</span> ${privateLoanResults.accelerated.monthlyPayment.toFixed(2)}</p>
                           <p><span className="font-semibold">Total Paid:</span> ${privateLoanResults.accelerated.totalPaid.toFixed(2)}</p>
@@ -764,11 +764,11 @@ export default function StudentLoanPayoff() {
                     
                     {(parseFloat(extraPayment || 0) > 0 || privateCalcMode === 'target') && (
                       <div className="bg-white rounded-lg p-4 border border-gray-200">
-                        <h4 className="font-bold text-blue-800 mb-2">{privateCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}</h4>
+                        <h4 className="font-bold text-brand-blue-dark mb-2">{privateCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          {privateCalcMode === 'target' && privateLoanResults.requiredExtraPayment && (<p><span className="font-semibold">Required Extra Payment:</span> <span className="text-emerald-600 font-bold">${privateLoanResults.requiredExtraPayment.toFixed(2)}/month</span></p>)}
-                          <p><span className="font-semibold">Interest Saved:</span> <span className="text-emerald-600 font-bold">${privateLoanResults.savings.interestSaved.toFixed(2)}</span></p>
-                          <p><span className="font-semibold">Time Saved:</span> <span className="text-emerald-600 font-bold">{Math.floor(privateLoanResults.savings.monthsSaved / 12)} years, {privateLoanResults.savings.monthsSaved % 12} months</span></p>
+                          {privateCalcMode === 'target' && privateLoanResults.requiredExtraPayment && (<p><span className="font-semibold">Required Extra Payment:</span> <span className="text-brand-green font-bold">${privateLoanResults.requiredExtraPayment.toFixed(2)}/month</span></p>)}
+                          <p><span className="font-semibold">Interest Saved:</span> <span className="text-brand-green font-bold">${privateLoanResults.savings.interestSaved.toFixed(2)}</span></p>
+                          <p><span className="font-semibold">Time Saved:</span> <span className="text-brand-green font-bold">{Math.floor(privateLoanResults.savings.monthsSaved / 12)} years, {privateLoanResults.savings.monthsSaved % 12} months</span></p>
                         </div>
                       </div>
                     )}
@@ -783,7 +783,7 @@ export default function StudentLoanPayoff() {
                          <div className="mt-6 text-center">
                           <button 
                             onClick={() => handleDownloadSchedule(totalPrivateBalance, (privateLoans.reduce((acc, loan) => acc + (loan.balance * loan.annualRate), 0) / totalPrivateBalance), privateLoanResults.accelerated.monthlyPayment, 'private-loan-schedule.csv')}
-                            className="flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 text-sm bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition"
+                            className="flex items-center justify-center gap-2 w-full md:w-auto px-4 py-2 text-sm bg-gray-200 text-brand-blue-dark font-semibold rounded-lg hover:bg-gray-300 transition"
                           >
                             <Download size={16} /> Download Full Schedule
                           </button>
@@ -800,12 +800,12 @@ export default function StudentLoanPayoff() {
         {/* Strategic Tools - Refinancing */}
         {federalLoans.length > 0 && (
           <Card>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Strategic Tools</h2>
-            <div className="bg-rose-50 border border-rose-500/50 p-6 rounded-lg">
+            <h2 className="text-2xl font-semibold text-brand-blue-dark mb-6">Strategic Tools</h2>
+            <div className="bg-brand-red-light border border-rose-500/50 p-6 rounded-lg">
               <h3 className="text-xl font-semibold text-rose-600 mb-4">Refinancing Simulator</h3>
               
               <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Compare refinancing based on:</p>
+                <p className="text-sm font-semibold text-brand-blue-dark mb-3">Compare refinancing based on:</p>
                 <div className="space-y-2">
                   <label className="flex items-center cursor-pointer"><input type="radio" name="comparisonMode" value="lowestPayment" checked={refinanceComparisonMode === 'lowestPayment'} onChange={(e) => setRefinanceComparisonMode(e.target.value)} className="mr-2" /><span className="text-sm">Lowest Monthly Payment</span></label>
                   <label className="flex items-center cursor-pointer"><input type="radio" name="comparisonMode" value="lowestTotal" checked={refinanceComparisonMode === 'lowestTotal'} onChange={(e) => setRefinanceComparisonMode(e.target.value)} className="mr-2" /><span className="text-sm">Lowest Total Cost</span></label>
@@ -830,8 +830,8 @@ export default function StudentLoanPayoff() {
                 <div className="mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-blue-100 border-2 border-blue-600 rounded-lg p-5">
-                      <div className="flex items-center gap-2 mb-3"><span className="text-2xl">🛡️</span><h4 className="font-bold text-blue-800">Your Federal Option</h4></div>
-                      <p className="text-xs text-blue-600 mb-3 font-semibold">Protected</p>
+                      <div className="flex items-center gap-2 mb-3"><span className="text-2xl">🛡️</span><h4 className="font-bold text-brand-blue-dark">Your Federal Option</h4></div>
+                      <p className="text-xs text-brand-blue mb-3 font-semibold">Protected</p>
                       <div className="space-y-2 text-sm">
                         <p><span className="font-semibold">Plan:</span> {bestFederalPlan.name}</p>
                         <p><span className="font-semibold">Monthly Payment:</span> ${typeof bestFederalPlan.plan.monthlyPayment === 'number' ? bestFederalPlan.plan.monthlyPayment.toFixed(2) : bestFederalPlan.plan.monthlyPayment}</p>
@@ -841,9 +841,9 @@ export default function StudentLoanPayoff() {
                       </div>
                     </div>
 
-                    <div className="bg-rose-50 border-2 border-rose-500 rounded-lg p-5">
+                    <div className="bg-brand-red-light border-2 border-rose-500 rounded-lg p-5">
                       <div className="flex items-center gap-2 mb-3"><span className="text-2xl">⚠️</span><h4 className="font-bold text-rose-600">Refinanced Option</h4></div>
-                      <p className="text-xs text-rose-500 mb-3 font-semibold">Unprotected</p>
+                      <p className="text-xs text-brand-red mb-3 font-semibold">Unprotected</p>
                       <div className="space-y-2 text-sm">
                         <p><span className="font-semibold">Plan:</span> Private Refinance</p>
                         <p><span className="font-semibold">Monthly Payment:</span> ${refinanceResults.monthlyPayment.toFixed(2)}</p>
@@ -856,7 +856,7 @@ export default function StudentLoanPayoff() {
                 </div>
               )}
 
-              <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-600 p-4 rounded-md">
+              <div className="bg-brand-red-light border-l-4 border-rose-500 text-rose-600 p-4 rounded-md">
                 <h4 className="font-bold text-lg mb-2">⚠️ WARNING: Irreversible Decision</h4>
                 <p className="text-sm mb-3">Refinancing federal loans into a private loan means you <strong>permanently lose access to:</strong></p>
                 <ul className="text-sm space-y-1 ml-4">
