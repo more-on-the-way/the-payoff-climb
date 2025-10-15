@@ -117,7 +117,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
           </div>
           <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md">
             <div 
-              className="bg-emerald-600 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-gray-200 flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${baselinePrincipalPct}%` }}
             >
               {baselinePrincipalPct > 15 && (
