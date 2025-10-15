@@ -104,7 +104,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
           <span>Principal (Your Debt)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-brand-red-light0 rounded"></div>
+          <div className="w-4 h-4 bg-brand-red rounded"></div>
           <span>Interest (Bank Profit)</span>
         </div>
       </div>
@@ -125,7 +125,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
               )}
             </div>
             <div 
-              className="bg-brand-red-light0 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-brand-red flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${baselineInterestPct}%` }}
             >
               {baselineInterestPct > 15 && (
@@ -142,7 +142,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
           </div>
           <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md border-2 border-emerald-500">
             <div 
-              className="bg-brand-green-light0 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-gray-200 flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${acceleratedPrincipalPct}%` }}
             >
               {acceleratedPrincipalPct > 15 && (
