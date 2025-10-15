@@ -188,30 +188,32 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
   return (
     <div className="mt-6 bg-white rounded-lg p-5 border-2 border-brand-blue/30">
       <h4 className="font-bold text-brand-blue-dark mb-6 text-center">Debt-Free Timeline</h4>
-      <div className="relative w-full h-2 bg-gray-200 rounded-full">
+      <div className="relative w-full h-2 bg-gray-200 rounded-full mb-8">
         <div 
           className="absolute h-2 bg-brand-green rounded-full" 
-          style={{width: `calc(${acceleratedPosition}% - 8px)`}}
+          style={{width: `${acceleratedPosition}%`}}
         ></div>
-        
-        {/* Today */}
-        <div className="absolute top-0 left-0 -translate-x-1/2">
-          <div className="w-4 h-4 bg-brand-blue rounded-full border-2 border-white"></div>
-          <p className="text-xs font-semibold text-brand-blue-dark mt-2 text-center">Today</p>
-        </div>
-        
-        {/* Accelerated Payoff */}
-        <div className="absolute top-0 -translate-x-1/2" style={{left: `${acceleratedPosition}%`}}>
-          <div className="w-4 h-4 bg-brand-green-dark rounded-full border-2 border-white"></div>
-          <p className="text-xs font-semibold text-brand-green-dark mt-2 text-center whitespace-nowrap">Accelerated Payoff</p>
-          <p className="text-xs text-gray-500 text-center">{acceleratedDate.toLocaleDateString()}</p>
-        </div>
-        
-        {/* Baseline Payoff */}
-        <div className="absolute top-0 right-0 translate-x-1/2">
-          <div className="w-4 h-4 bg-gray-400 rounded-full border-2 border-white"></div>
-          <p className="text-xs font-semibold text-gray-600 mt-2 text-center">Baseline Payoff</p>
-          <p className="text-xs text-gray-500 text-center">{baselineDate.toLocaleDateString()}</p>
+      </div>
+      
+      {/* Timeline Labels */}
+      <div className="relative w-full">
+        <div className="flex justify-between items-start">
+          {/* Today */}
+          <div className="text-left">
+            <p className="text-xs font-semibold text-brand-blue-dark">Today</p>
+          </div>
+          
+          {/* Accelerated Payoff */}
+          <div className="absolute" style={{left: `${acceleratedPosition}%`, transform: 'translateX(-50%)'}}>
+            <p className="text-xs font-semibold text-brand-green-dark whitespace-nowrap">Accelerated Payoff</p>
+            <p className="text-xs text-gray-500 text-center">{acceleratedDate.toLocaleDateString()}</p>
+          </div>
+          
+          {/* Baseline Payoff */}
+          <div className="text-right">
+            <p className="text-xs font-semibold text-gray-600">Baseline Payoff</p>
+            <p className="text-xs text-gray-500">{baselineDate.toLocaleDateString()}</p>
+          </div>
         </div>
       </div>
     </div>
