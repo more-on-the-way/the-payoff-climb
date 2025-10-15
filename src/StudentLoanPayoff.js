@@ -172,7 +172,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
   );
 };
 
-// --- REBUILT & FIXED: Debt-Free Timeline Component using Flexbox ---
+// --- FINAL BUGFIX: Debt-Free Timeline Component ---
 const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
   const today = new Date();
   
@@ -190,41 +190,47 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
   return (
     <div className="mt-6 bg-white rounded-lg p-5 border-2 border-blue-100">
       <h4 className="font-bold text-slate-800 mb-6 text-center">Debt-Free Timeline</h4>
-      <div className="relative w-full h-2 bg-slate-200 rounded-full">
+      <div className="relative w-full pt-10 px-2"> {/* Added padding for labels */}
+        {/* Track */}
+        <div className="relative h-2 bg-slate-200 rounded-full">
+          {/* Progress Bar */}
+          <div 
+            className="absolute h-full bg-green-500 rounded-l-full transition-all duration-1000 ease-out"
+            style={{ width: `${acceleratedPosition}%` }}
+          />
 
-        {/* Today Marker */}
-        <div className="absolute top-1/2 left-0 -translate-y-1/2">
-          <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-sm"></div>
-          <p className="absolute top-full mt-2 -translate-x-1/2 text-xs font-semibold text-blue-700">Today</p>
-        </div>
-        
-        {/* Green Bar (Flexbox Container) */}
-        <div
-          className="absolute h-2 bg-green-500 rounded-full transition-all duration-1000 ease-out flex justify-end items-center"
-          style={{ width: `${acceleratedPosition}%` }}
-        >
-          {/* Accelerated Payoff Marker (Flex Item) */}
-          <div className="relative translate-x-1/2">
-            <div className="w-4 h-4 bg-green-600 rounded-full border-2 border-white shadow-sm"></div>
-            <div className="absolute top-full mt-2 -translate-x-1/2 w-max">
-              <p className="text-xs font-semibold text-green-700 text-center">Accelerated Payoff</p>
-              <p className="text-xs text-slate-500 text-center">{acceleratedDate.toLocaleDateString()}</p>
+          {/* Today Marker */}
+          <div className="absolute top-1/2 left-0 -translate-y-1/2">
+            <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-sm" />
+            <p className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-semibold text-blue-700">Today</p>
+          </div>
+
+          {/* Accelerated Marker */}
+          <div 
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
+            style={{ left: `${acceleratedPosition}%` }}
+          >
+            <div className="w-4 h-4 bg-green-600 rounded-full border-2 border-white shadow-sm" />
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-max text-center">
+              <p className="text-xs font-semibold text-green-700">Accelerated Payoff</p>
+              <p className="text-xs text-slate-500">{acceleratedDate.toLocaleDateString()}</p>
             </div>
           </div>
-        </div>
-        
-        {/* Baseline Payoff Marker */}
-        <div className="absolute top-1/2 right-0 -translate-y-1/2">
-          <div className="w-4 h-4 bg-slate-500 rounded-full border-2 border-white shadow-sm"></div>
-          <div className="absolute top-full mt-2 -translate-x-1/2 w-max">
-             <p className="text-xs font-semibold text-slate-600 text-center">Baseline Payoff</p>
-             <p className="text-xs text-slate-500 text-center">{baselineDate.toLocaleDateString()}</p>
+
+          {/* Baseline Marker */}
+          <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2">
+            <div className="w-4 h-4 bg-slate-500 rounded-full border-2 border-white shadow-sm" />
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-max text-center">
+              <p className="text-xs font-semibold text-slate-600">Baseline Payoff</p>
+              <p className="text-xs text-slate-500">{baselineDate.toLocaleDateString()}</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
 
 // --- Main Application Component ---
 export default function StudentLoanPayoff() {
