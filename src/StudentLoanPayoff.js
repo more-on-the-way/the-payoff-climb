@@ -1,5 +1,6 @@
 // Updated: 10/12/2025
 // Phase 5, Step 3: Implement Advanced Visualizations.
+import '@fontsource/atkinson-hyperlegible';
 import React, { useState, useMemo } from 'react';
 import { PlusCircle, XCircle, AlertTriangle, ChevronsRight, Download } from 'lucide-react';
 import { calculatePlans, calculatePrivateLoanPayoff, calculateAmortizedPayment, calculateAcceleratedPayoff, calculateTargetYearPayment, generateAmortizationSchedule } from './loanCalculations';
@@ -42,14 +43,14 @@ const Card = ({ children, className = '', ...props }) => (
 const Input = ({ label, id, ...props }) => (
   <div>
     <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <input id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-brand-blue focus:border-brand-blue" />
+    <input id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-600 focus:border-blue-600" />
   </div>
 );
 
 const Select = ({ label, id, children, ...props }) => (
   <div>
     <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <select id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue">
+    <select id={id} {...props} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600">
       {children}
     </select>
   </div>
@@ -64,9 +65,9 @@ const ResultsCard = ({ title, plan, warning }) => {
 
   return (
     <div className="bg-gray-50 rounded-lg p-4 border flex flex-col">
-      <h3 className="font-bold text-lg text-brand-blue-dark">{title}</h3>
-      {plan.status && <p className="text-xs font-bold text-brand-red my-1">{plan.status}</p>}
-      {warning && <p className="text-xs text-brand-amber-dark my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
+      <h3 className="font-bold text-lg text-blue-800">{title}</h3>
+      {plan.status && <p className="text-xs font-bold text-rose-500 my-1">{plan.status}</p>}
+      {warning && <p className="text-xs text-amber-600 my-1 flex items-center gap-1"><AlertTriangle size={14}/> {warning}</p>}
       <div className="mt-2 space-y-1 text-sm flex-grow">
         <p><span className="font-semibold">Monthly Payment:</span> {formatCurrency(plan.monthlyPayment)}</p>
         <p><span className="font-semibold">Total Paid:</span> {formatCurrency(plan.totalPaid)}</p>
@@ -95,16 +96,16 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
   const acceleratedLabel = calcMode === 'target' ? 'To Meet Target' : 'With Extra Payment';
   
   return (
-    <div className="mt-6 bg-white rounded-lg p-5 border-2 border-brand-blue/30">
-      <h4 className="font-bold text-brand-blue-dark mb-4 text-center">Payment Breakdown: Where Your Money Goes</h4>
+    <div className="mt-6 bg-white rounded-lg p-5 border-2 border-blue-600/30">
+      <h4 className="font-bold text-blue-800 mb-4 text-center">Payment Breakdown: Where Your Money Goes</h4>
       
       <div className="flex justify-center gap-6 mb-6 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-brand-green-dark rounded"></div>
+          <div className="w-4 h-4 bg-emerald-600 rounded"></div>
           <span>Principal (Your Debt)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-brand-red rounded"></div>
+          <div className="w-4 h-4 bg-rose-500 rounded"></div>
           <span>Interest (Bank Profit)</span>
         </div>
       </div>
@@ -117,7 +118,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
           </div>
           <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md">
             <div 
-              className="bg-brand-green-dark flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-emerald-600 flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${baselinePrincipalPct}%` }}
             >
               {baselinePrincipalPct > 15 && (
@@ -125,7 +126,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
               )}
             </div>
             <div 
-              className="bg-brand-red flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-rose-500 flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${baselineInterestPct}%` }}
             >
               {baselineInterestPct > 15 && (
@@ -137,12 +138,12 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
         
         <div>
           <div className="flex justify-between items-center mb-2">
-            <h5 className="font-semibold text-brand-green-dark text-sm">{acceleratedLabel}</h5>
+            <h5 className="font-semibold text-emerald-600 text-sm">{acceleratedLabel}</h5>
             <span className="text-xs text-gray-600">Total: ${acceleratedTotal.toFixed(2)}</span>
           </div>
-          <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md border-2 border-brand-green">
+          <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-md border-2 border-emerald-500">
             <div 
-              className="bg-brand-green flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-emerald-500 flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${acceleratedPrincipalPct}%` }}
             >
               {acceleratedPrincipalPct > 15 && (
@@ -150,7 +151,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
               )}
             </div>
             <div 
-              className="bg-brand-red-dark flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-rose-600 flex items-center justify-center text-white text-xs font-semibold transition-all"
               style={{ width: `${acceleratedInterestPct}%` }}
             >
               {acceleratedInterestPct > 15 && (
@@ -161,8 +162,8 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
         </div>
       </div>
       
-      <div className="mt-4 p-3 bg-brand-green-light rounded-md border border-brand-green/30">
-        <p className="text-sm text-brand-green-darker">
+      <div className="mt-4 p-3 bg-emerald-50 rounded-md border border-emerald-500/30">
+        <p className="text-sm text-emerald-700">
           <span className="font-semibold">💡 Key Insight:</span> By accelerating payments, you reduce the total interest paid to the bank while paying off the same principal amount. Every extra dollar goes directly toward eliminating your debt faster.
         </p>
       </div>
@@ -186,11 +187,11 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
   const acceleratedPosition = Math.max(0, Math.min(100, (acceleratedDuration / totalDuration) * 100));
 
   return (
-    <div className="mt-6 bg-white rounded-lg p-5 border-2 border-brand-blue/30">
-      <h4 className="font-bold text-brand-blue-dark mb-6 text-center">Debt-Free Timeline</h4>
+    <div className="mt-6 bg-white rounded-lg p-5 border-2 border-blue-600/30">
+      <h4 className="font-bold text-blue-800 mb-6 text-center">Debt-Free Timeline</h4>
       <div className="relative w-full h-2 bg-gray-200 rounded-full mb-8">
         <div 
-          className="absolute h-2 bg-brand-green rounded-full" 
+          className="absolute h-2 bg-emerald-500 rounded-full" 
           style={{width: `${acceleratedPosition}%`}}
         ></div>
       </div>
@@ -200,12 +201,12 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
         <div className="flex justify-between items-start">
           {/* Today */}
           <div className="text-left">
-            <p className="text-xs font-semibold text-brand-blue-dark">Today</p>
+            <p className="text-xs font-semibold text-blue-800">Today</p>
           </div>
           
           {/* Accelerated Payoff */}
           <div className="absolute" style={{left: `${acceleratedPosition}%`, transform: 'translateX(-50%)'}}>
-            <p className="text-xs font-semibold text-brand-green-dark whitespace-nowrap">Accelerated Payoff</p>
+            <p className="text-xs font-semibold text-emerald-600 whitespace-nowrap">Accelerated Payoff</p>
             <p className="text-xs text-gray-500 text-center">{acceleratedDate.toLocaleDateString()}</p>
           </div>
           
@@ -467,11 +468,11 @@ export default function StudentLoanPayoff() {
 
 
   return (
-    <div className="min-h-screen bg-brand-background p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8" style={{ fontFamily: 'Atkinson Hyperlegible, sans-serif' }}>
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-brand-blue-dark">The Payoff Climb</h1>
+          <h1 className="text-4xl font-bold text-blue-800">The Payoff Climb</h1>
           <p className="mt-2 text-lg text-gray-600">Your journey to student loan freedom</p>
         </div>
 
@@ -524,7 +525,7 @@ export default function StudentLoanPayoff() {
             <h2 className="text-2xl font-semibold text-gray-800">Your Loans</h2>
             <button 
               onClick={addLoan} 
-              className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-md hover:bg-brand-blue-dark transition"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-800 transition"
             >
               <PlusCircle size={20} /> Add Loan
             </button>
@@ -569,7 +570,7 @@ export default function StudentLoanPayoff() {
 
         {/* Contamination Warning Question */}
         {showContaminationQuestion && (
-          <Card className="bg-brand-amber-light border border-brand-amber/50">
+          <Card className="bg-amber-50 border border-amber-500/50">
             <h3 className="font-semibold text-gray-800 mb-2">Future Federal Loans</h3>
             <p className="text-sm text-gray-600 mb-4">This question is required because you have loans from before July 1, 2026.</p>
             <Select label="Are you planning to take out any new federal loans on or after July 1, 2026?" id="contamination-check" value={plansToTakeNewLoan || ''} onChange={(e) => setPlansToTakeNewLoan(e.target.value)}>
@@ -588,7 +589,7 @@ export default function StudentLoanPayoff() {
               <p className="text-sm text-gray-600">Based on a total federal balance of ${totalFederalBalance.toLocaleString()}</p>
             </div>
             {eligiblePlans.contaminationWarning && (
-              <div className="bg-brand-red-light border-l-4 border-brand-red text-brand-red-dark p-4 mb-6 rounded-md flex items-center gap-3">
+              <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-600 p-4 mb-6 rounded-md flex items-center gap-3">
                 <AlertTriangle size={24} />
                 <div>
                   <h3 className="font-bold">Important Warning</h3>
@@ -614,13 +615,13 @@ export default function StudentLoanPayoff() {
               <div className="text-center mt-4">
                 <button 
                   onClick={() => setShowFederalStrategy(true)} 
-                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-brand-blue text-white font-semibold rounded-lg shadow-md hover:bg-brand-blue-dark transition"
+                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-800 transition"
                 >
                   Analyze Payoff Strategies <ChevronsRight size={20} />
                 </button>
               </div>
             ) : (
-              <div className="bg-brand-green-light p-6 rounded-xl border border-brand-green/30">
+              <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-500/30">
                 <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200">
                   <p className="text-sm font-semibold text-gray-700 mb-3">Calculate based on:</p>
                   <div className="space-y-2">
@@ -642,7 +643,7 @@ export default function StudentLoanPayoff() {
                 </div>
 
                 {federalAcceleratedResults?.error && (
-                  <div className={`p-4 rounded-lg mb-6 ${federalAcceleratedResults.alreadyMeetsTarget ? 'bg-brand-amber-light border border-brand-amber/50 text-amber-800' : 'bg-brand-red-light border border-brand-red/50 text-red-800'}`}>
+                  <div className={`p-4 rounded-lg mb-6 ${federalAcceleratedResults.alreadyMeetsTarget ? 'bg-amber-50 border border-amber-500/50 text-amber-800' : 'bg-rose-50 border border-rose-500/50 text-red-800'}`}>
                     <p className="text-sm font-semibold">{federalAcceleratedResults.error}</p>
                   </div>
                 )}
@@ -659,8 +660,8 @@ export default function StudentLoanPayoff() {
                           <p><span className="font-semibold">Total Interest:</span> ${federalAcceleratedResults.baseline.totalInterest.toFixed(2)}</p>
                         </div>
                       </div>
-                      <div className="bg-white rounded-lg p-4 border-2 border-brand-green">
-                        <h3 className="font-bold text-lg text-brand-green-dark mb-3">{federalCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}</h3>
+                      <div className="bg-white rounded-lg p-4 border-2 border-emerald-500">
+                        <h3 className="font-bold text-lg text-emerald-600 mb-3">{federalCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}</h3>
                         <div className="space-y-2 text-sm">
                           <p><span className="font-semibold">Monthly Payment:</span> ${federalAcceleratedResults.accelerated.monthlyPayment.toFixed(2)}</p>
                           <p><span className="font-semibold">Total Paid:</span> ${federalAcceleratedResults.accelerated.totalPaid.toFixed(2)}</p>
@@ -671,11 +672,11 @@ export default function StudentLoanPayoff() {
                     </div>
                     
                     <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
-                      <h4 className="font-bold text-brand-blue-dark mb-2">{federalCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}</h4>
+                      <h4 className="font-bold text-blue-800 mb-2">{federalCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        {federalCalcMode === 'target' && federalAcceleratedResults.requiredExtraPayment && (<p><span className="font-semibold">Required Extra Payment:</span> <span className="text-brand-green-dark font-bold">${federalAcceleratedResults.requiredExtraPayment.toFixed(2)}/month</span></p>)}
-                        <p><span className="font-semibold">Interest Saved:</span> <span className="text-brand-green-dark font-bold">${(federalAcceleratedResults.baseline.totalInterest - federalAcceleratedResults.accelerated.totalInterest).toFixed(2)}</span></p>
-                        <p><span className="font-semibold">Time Saved:</span> <span className="text-brand-green-dark font-bold">
+                        {federalCalcMode === 'target' && federalAcceleratedResults.requiredExtraPayment && (<p><span className="font-semibold">Required Extra Payment:</span> <span className="text-emerald-600 font-bold">${federalAcceleratedResults.requiredExtraPayment.toFixed(2)}/month</span></p>)}
+                        <p><span className="font-semibold">Interest Saved:</span> <span className="text-emerald-600 font-bold">${(federalAcceleratedResults.baseline.totalInterest - federalAcceleratedResults.accelerated.totalInterest).toFixed(2)}</span></p>
+                        <p><span className="font-semibold">Time Saved:</span> <span className="text-emerald-600 font-bold">
                           {Math.floor(Math.abs(federalAcceleratedResults.savings.monthsSaved) / 12)} years, {Math.abs(federalAcceleratedResults.savings.monthsSaved) % 12} months
                         </span></p>
                       </div>
@@ -718,13 +719,13 @@ export default function StudentLoanPayoff() {
               <div className="text-center mt-4">
                 <button 
                   onClick={() => setShowPrivateStrategy(true)}
-                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-brand-blue text-white font-semibold rounded-lg shadow-md hover:bg-brand-blue-dark transition"
+                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-800 transition"
                 >
                   Analyze Payoff Strategies <ChevronsRight size={20} />
                 </button>
               </div>
             ) : (
-              <div className="bg-brand-green-light p-6 rounded-xl border border-brand-green/30">
+              <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-500/30">
                 <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200">
                   <p className="text-sm font-semibold text-gray-700 mb-3">Calculate based on:</p>
                   <div className="space-y-2">
@@ -740,7 +741,7 @@ export default function StudentLoanPayoff() {
                 )}
 
                 {privateLoanResults?.error && (
-                  <div className={`mt-4 p-4 rounded-lg ${privateLoanResults.alreadyMeetsTarget ? 'bg-brand-amber-light border border-brand-amber/50 text-amber-800' : 'bg-brand-red-light border border-brand-red/50 text-red-800'}`}>
+                  <div className={`mt-4 p-4 rounded-lg ${privateLoanResults.alreadyMeetsTarget ? 'bg-amber-50 border border-amber-500/50 text-amber-800' : 'bg-rose-50 border border-rose-500/50 text-red-800'}`}>
                     <p className="text-sm font-semibold">{privateLoanResults.error}</p>
                   </div>
                 )}
@@ -757,8 +758,8 @@ export default function StudentLoanPayoff() {
                           <p><span className="font-semibold">Total Interest:</span> ${privateLoanResults.baseline.totalInterest.toFixed(2)}</p>
                         </div>
                       </div>
-                      <div className="bg-white rounded-lg p-4 border-2 border-brand-green">
-                        <h3 className="font-bold text-lg text-brand-green-dark mb-3">{privateCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}</h3>
+                      <div className="bg-white rounded-lg p-4 border-2 border-emerald-500">
+                        <h3 className="font-bold text-lg text-emerald-600 mb-3">{privateCalcMode === 'extra' ? 'With Extra Payment' : 'To Meet Target'}</h3>
                         <div className="space-y-2 text-sm">
                           <p><span className="font-semibold">Monthly Payment:</span> ${privateLoanResults.accelerated.monthlyPayment.toFixed(2)}</p>
                           <p><span className="font-semibold">Total Paid:</span> ${privateLoanResults.accelerated.totalPaid.toFixed(2)}</p>
@@ -770,11 +771,11 @@ export default function StudentLoanPayoff() {
                     
                     {(parseFloat(extraPayment || 0) > 0 || privateCalcMode === 'target') && (
                       <div className="bg-white rounded-lg p-4 border border-gray-200">
-                        <h4 className="font-bold text-brand-blue-dark mb-2">{privateCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}</h4>
+                        <h4 className="font-bold text-blue-800 mb-2">{privateCalcMode === 'extra' ? 'Savings Summary' : 'Target Achievement'}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          {privateCalcMode === 'target' && privateLoanResults.requiredExtraPayment && (<p><span className="font-semibold">Required Extra Payment:</span> <span className="text-brand-green-dark font-bold">${privateLoanResults.requiredExtraPayment.toFixed(2)}/month</span></p>)}
-                          <p><span className="font-semibold">Interest Saved:</span> <span className="text-brand-green-dark font-bold">${privateLoanResults.savings.interestSaved.toFixed(2)}</span></p>
-                          <p><span className="font-semibold">Time Saved:</span> <span className="text-brand-green-dark font-bold">{Math.floor(privateLoanResults.savings.monthsSaved / 12)} years, {privateLoanResults.savings.monthsSaved % 12} months</span></p>
+                          {privateCalcMode === 'target' && privateLoanResults.requiredExtraPayment && (<p><span className="font-semibold">Required Extra Payment:</span> <span className="text-emerald-600 font-bold">${privateLoanResults.requiredExtraPayment.toFixed(2)}/month</span></p>)}
+                          <p><span className="font-semibold">Interest Saved:</span> <span className="text-emerald-600 font-bold">${privateLoanResults.savings.interestSaved.toFixed(2)}</span></p>
+                          <p><span className="font-semibold">Time Saved:</span> <span className="text-emerald-600 font-bold">{Math.floor(privateLoanResults.savings.monthsSaved / 12)} years, {privateLoanResults.savings.monthsSaved % 12} months</span></p>
                         </div>
                       </div>
                     )}
@@ -807,8 +808,8 @@ export default function StudentLoanPayoff() {
         {federalLoans.length > 0 && (
           <Card>
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Strategic Tools</h2>
-            <div className="bg-brand-red-light border border-brand-red/50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold text-brand-red-dark mb-4">Refinancing Simulator</h3>
+            <div className="bg-rose-50 border border-rose-500/50 p-6 rounded-lg">
+              <h3 className="text-xl font-semibold text-rose-600 mb-4">Refinancing Simulator</h3>
               
               <div className="mb-6 bg-white p-4 rounded-lg border border-gray-200">
                 <p className="text-sm font-semibold text-gray-700 mb-3">Compare refinancing based on:</p>
@@ -818,7 +819,7 @@ export default function StudentLoanPayoff() {
                   <label className="flex items-center cursor-pointer"><input type="radio" name="comparisonMode" value="custom" checked={refinanceComparisonMode === 'custom'} onChange={(e) => setRefinanceComparisonMode(e.target.value)} className="mr-2" /><span className="text-sm">Custom Plan</span></label>
                   {refinanceComparisonMode === 'custom' && (
                     <div className="ml-6 mt-2">
-                      <select value={customPlanSelection} onChange={(e) => setCustomPlanSelection(e.target.value)} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-blue focus:border-brand-blue">
+                      <select value={customPlanSelection} onChange={(e) => setCustomPlanSelection(e.target.value)} className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-600 focus:border-blue-600">
                         <option value="">Select a plan to compare</option>
                         {Object.keys(eligiblePlans.plans).map(planName => (<option key={planName} value={planName}>{planName}</option>))}
                       </select>
@@ -835,9 +836,9 @@ export default function StudentLoanPayoff() {
               {refinanceResults && bestFederalPlan && (
                 <div className="mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-blue-100 border-2 border-brand-blue rounded-lg p-5">
-                      <div className="flex items-center gap-2 mb-3"><span className="text-2xl">🛡️</span><h4 className="font-bold text-brand-blue-dark">Your Federal Option</h4></div>
-                      <p className="text-xs text-brand-blue mb-3 font-semibold">Protected</p>
+                    <div className="bg-blue-100 border-2 border-blue-600 rounded-lg p-5">
+                      <div className="flex items-center gap-2 mb-3"><span className="text-2xl">🛡️</span><h4 className="font-bold text-blue-800">Your Federal Option</h4></div>
+                      <p className="text-xs text-blue-600 mb-3 font-semibold">Protected</p>
                       <div className="space-y-2 text-sm">
                         <p><span className="font-semibold">Plan:</span> {bestFederalPlan.name}</p>
                         <p><span className="font-semibold">Monthly Payment:</span> ${typeof bestFederalPlan.plan.monthlyPayment === 'number' ? bestFederalPlan.plan.monthlyPayment.toFixed(2) : bestFederalPlan.plan.monthlyPayment}</p>
@@ -847,9 +848,9 @@ export default function StudentLoanPayoff() {
                       </div>
                     </div>
 
-                    <div className="bg-brand-red-light border-2 border-brand-red rounded-lg p-5">
-                      <div className="flex items-center gap-2 mb-3"><span className="text-2xl">⚠️</span><h4 className="font-bold text-brand-red-dark">Refinanced Option</h4></div>
-                      <p className="text-xs text-brand-red mb-3 font-semibold">Unprotected</p>
+                    <div className="bg-rose-50 border-2 border-rose-500 rounded-lg p-5">
+                      <div className="flex items-center gap-2 mb-3"><span className="text-2xl">⚠️</span><h4 className="font-bold text-rose-600">Refinanced Option</h4></div>
+                      <p className="text-xs text-rose-500 mb-3 font-semibold">Unprotected</p>
                       <div className="space-y-2 text-sm">
                         <p><span className="font-semibold">Plan:</span> Private Refinance</p>
                         <p><span className="font-semibold">Monthly Payment:</span> ${refinanceResults.monthlyPayment.toFixed(2)}</p>
@@ -862,7 +863,7 @@ export default function StudentLoanPayoff() {
                 </div>
               )}
 
-              <div className="bg-brand-red-light border-l-4 border-brand-red text-brand-red-dark p-4 rounded-md">
+              <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-600 p-4 rounded-md">
                 <h4 className="font-bold text-lg mb-2">⚠️ WARNING: Irreversible Decision</h4>
                 <p className="text-sm mb-3">Refinancing federal loans into a private loan means you <strong>permanently lose access to:</strong></p>
                 <ul className="text-sm space-y-1 ml-4">
