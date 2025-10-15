@@ -203,12 +203,6 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
             <p className="text-xs font-semibold text-blue-800">Today</p>
           </div>
           
-          {/* Accelerated Payoff */}
-          <div className="absolute" style={{left: `${acceleratedPosition}%`, transform: 'translateX(-50%)'}}>
-            <p className="text-xs font-semibold text-emerald-600 whitespace-nowrap">Accelerated Payoff</p>
-            <p className="text-xs text-gray-500 text-center">{acceleratedDate.toLocaleDateString()}</p>
-          </div>
-          
           {/* Baseline Payoff */}
           <div className="text-right">
             <p className="text-xs font-semibold text-gray-600">Baseline Payoff</p>
