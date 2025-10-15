@@ -1,5 +1,5 @@
 // Updated: 10/14/2025
-// Phase 5, Step 1: Implement Professional Redesign & Timeline Fix.
+// Phase 5, Step 2: Implement Final Polish (Timeline Fix & Animations).
 // NOTE: For the font change to take effect, you must import "Atkinson Hyperlegible" 
 // in your project's main CSS file (e.g., index.css) or via a <link> in your public/index.html.
 import React, { useState, useMemo } from 'react';
@@ -119,7 +119,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
           </div>
           <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-inner bg-slate-100">
             <div 
-              className="bg-green-600 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-green-600 flex items-center justify-center text-white text-xs font-semibold transition-all duration-1000 ease-out"
               style={{ width: `${baselinePrincipalPct}%` }}
             >
               {baselinePrincipalPct > 15 && (
@@ -127,7 +127,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
               )}
             </div>
             <div 
-              className="bg-red-500 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-red-500 flex items-center justify-center text-white text-xs font-semibold transition-all duration-1000 ease-out"
               style={{ width: `${baselineInterestPct}%` }}
             >
               {baselineInterestPct > 15 && (
@@ -144,7 +144,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
           </div>
           <div className="w-full h-12 flex rounded-lg overflow-hidden shadow-inner bg-slate-100 border-2 border-green-500">
             <div 
-              className="bg-green-500 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-green-500 flex items-center justify-center text-white text-xs font-semibold transition-all duration-1000 ease-out"
               style={{ width: `${acceleratedPrincipalPct}%` }}
             >
               {acceleratedPrincipalPct > 15 && (
@@ -152,7 +152,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
               )}
             </div>
             <div 
-              className="bg-red-600 flex items-center justify-center text-white text-xs font-semibold transition-all"
+              className="bg-red-600 flex items-center justify-center text-white text-xs font-semibold transition-all duration-1000 ease-out"
               style={{ width: `${acceleratedInterestPct}%` }}
             >
               {acceleratedInterestPct > 15 && (
@@ -172,7 +172,7 @@ const PaymentBreakdownVisualizer = ({ baseline, accelerated, totalOriginalBalanc
   );
 };
 
-// --- REVISED: Debt-Free Timeline Component with new colors ---
+// --- REVISED & FIXED: Debt-Free Timeline Component ---
 const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
   const today = new Date();
   
@@ -191,19 +191,23 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
     <div className="mt-6 bg-white rounded-lg p-5 border-2 border-blue-100">
       <h4 className="font-bold text-slate-800 mb-6 text-center">Debt-Free Timeline</h4>
       <div className="relative w-full h-2 bg-slate-200 rounded-full">
-        <div className="absolute h-2 bg-green-500 rounded-full" style={{width: `${acceleratedPosition}%`}}></div>
-        
+        {/* Today Marker */}
         <div className="absolute top-0 left-0 -translate-x-1/2">
           <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-sm"></div>
           <p className="text-xs font-semibold text-blue-700 mt-2 text-center">Today</p>
         </div>
         
-        <div className="absolute top-0 -translate-x-1/2" style={{left: `${acceleratedPosition}%`}}>
-          <div className="w-4 h-4 bg-green-600 rounded-full border-2 border-white shadow-sm"></div>
-          <p className="text-xs font-semibold text-green-700 mt-2 text-center whitespace-nowrap">Accelerated Payoff</p>
-          <p className="text-xs text-slate-500 text-center">{acceleratedDate.toLocaleDateString()}</p>
+        {/* Green Bar (Container for Accelerated Marker) */}
+        <div className="absolute h-2 bg-green-500 rounded-full transition-all duration-1000 ease-out" style={{width: `${acceleratedPosition}%`}}>
+          {/* Accelerated Payoff Marker (Child of the bar) */}
+          <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2">
+            <div className="w-4 h-4 bg-green-600 rounded-full border-2 border-white shadow-sm"></div>
+            <p className="text-xs font-semibold text-green-700 mt-2 text-center whitespace-nowrap">Accelerated Payoff</p>
+            <p className="text-xs text-slate-500 text-center">{acceleratedDate.toLocaleDateString()}</p>
+          </div>
         </div>
         
+        {/* Baseline Payoff Marker */}
         <div className="absolute top-0 right-0 translate-x-1/2">
           <div className="w-4 h-4 bg-slate-500 rounded-full border-2 border-white shadow-sm"></div>
           <p className="text-xs font-semibold text-slate-600 mt-2 text-center">Baseline Payoff</p>
@@ -213,6 +217,7 @@ const DebtFreeTimeline = ({ baselineDate, acceleratedDate }) => {
     </div>
   );
 };
+
 
 // --- Main Application Component ---
 export default function StudentLoanPayoff() {
@@ -490,7 +495,7 @@ export default function StudentLoanPayoff() {
                   </div>
                 )}
                 {federalAcceleratedResults && !federalAcceleratedResults.error && (
-                  <div>
+                  <div className="opacity-0 animate-fade-in-up" style={{ animationFillMode: 'forwards' }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="bg-slate-100 rounded-lg p-4 border border-slate-300">
                         <h3 className="font-bold text-lg text-slate-700 mb-3">Current Plan</h3>
@@ -568,7 +573,7 @@ export default function StudentLoanPayoff() {
                   </div>
                 )}
                 {privateLoanResults && !privateLoanResults.error && (
-                  <div className="mt-6">
+                  <div className="mt-6 opacity-0 animate-fade-in-up" style={{ animationFillMode: 'forwards' }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="bg-slate-100 rounded-lg p-4 border border-slate-300">
                         <h3 className="font-bold text-lg text-slate-700 mb-3">Minimum Payments Only</h3>
